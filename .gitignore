@@ -1,0 +1,4 @@
+gitpr
+!gitpr/
+build/
+compile_commands.json
