@@ -3,7 +3,7 @@
 #include <cstdarg>
 #include <sstream>
 
-std::string Run(std::string cmd) {
+const std::string Run(std::string cmd) {
   std::string data;
   FILE *stream;
   const int max_buffer = 256;

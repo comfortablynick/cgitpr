@@ -5,14 +5,12 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 class Options {
 public:
   bool debug_print, show_ahead_behind, show_branch, show_branch_glyph,
       show_commit, show_diff, show_remote, show_stashed, show_staged_modified,
       show_unstaged_modified, show_untracked, show_vcs;
-  string format;
+  std::string format;
   Options() {
     debug_print = false;
     show_ahead_behind = false;
@@ -27,7 +25,7 @@ public:
     show_untracked = false;
     show_vcs = false;
   }
-  friend ostream &operator<<(ostream &out, Options *obj) {
+  friend std::ostream &operator<<(std::ostream &out, Options *obj) {
     out << "Options:" << '\n';
     out << "  Show ahead/behind: " << obj->show_ahead_behind << '\n';
     out << "  Show branch: " << obj->show_branch << '\n';
@@ -40,15 +38,20 @@ public:
     out << "  Show unstaged modified: " << obj->show_unstaged_modified << '\n';
     out << "  Show untracked: " << obj->show_untracked << '\n';
     out << "  Show vcs: " << obj->show_vcs << '\n';
+    out << "  Format: " << obj->format << '\n';
     return out;
+  }
+  void debug() {
+    if (debug_print) {
+      std::cerr << this;
+    }
   }
 };
 
 void parseFmtStr(Options *opts) {
-  const string &fmt = opts->format;
-  cout << "Format string: " << fmt << "\n";
+  const std::string &fmt = opts->format;
 
-  for (string::size_type i = 0; i < fmt.length(); i++) {
+  for (std::string::size_type i = 0; i < fmt.length(); i++) {
     if (fmt[i] == '%') {
       i++;
       switch (fmt[i]) {
@@ -83,31 +86,40 @@ void parseFmtStr(Options *opts) {
       case '%':
         break;
       default:
-        cerr << "Error! Unrecognized format string element '" << fmt[i] << "'"
-             << endl;
-        return;
+        fprintf(stderr, "error: token '%c' not recognized\n", fmt[i]);
+        exit(1);
       }
     }
   }
-  cout << '\n' << opts << endl;
 }
 
 int main() {
-  Repo ri;
-  RepoArea unstaged;
-  RepoArea staged;
-  ri.Unstaged = unstaged;
-  string gitStatus = Run("git status --porcelain=2 --branch");
-  vector<string> statusLines = split(gitStatus, '\n');
+  Repo *ri;
+  RepoArea *unstaged;
+  RepoArea *staged;
+
+  ri = new Repo;
+  unstaged = new RepoArea;
+  staged = new RepoArea;
+
+  ri->Unstaged = *unstaged;
+  ri->Staged = *staged;
+  const std::string gitStatus = Run("git status --porcelain=2 --branch");
+  std::vector<std::string> statusLines = split(gitStatus, '\n');
   for (int i = 0; i < statusLines.size(); i++) {
-    ri.parseGitStatus(statusLines[i]);
+    ri->parseGitStatus(statusLines[i]);
   }
-  ri.debug();
-  const string fmt = "%g %b %m %n %a %d %%";
+  ri->debug();
   Options *opts;
   opts = new Options;
-  opts->format = fmt;
+  opts->format = "%g (%b@%c) %m %n %a %d %%";
+  opts->debug_print = true;
   parseFmtStr(opts);
+  opts->debug();
+
   delete opts;
+  delete ri;
+  delete unstaged;
+  delete staged;
   return 0;
 }

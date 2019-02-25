@@ -4,13 +4,16 @@
 
 using namespace std;
 
-void RepoArea::debug() {
-  cout << "  Added: " << added << '\n';
-  cout << "  Copied: " << copied << '\n';
-  cout << "  Deleted: " << deleted << '\n';
-  cout << "  Modified: " << modified << '\n';
-  cout << "  Renamed: " << renamed << endl;
+std::ostream &operator<<(std::ostream &out, RepoArea *obj) {
+  out << "  Added: " << obj->added << '\n';
+  out << "  Copied: " << obj->copied << '\n';
+  out << "  Deleted: " << obj->deleted << '\n';
+  out << "  Modified: " << obj->modified << '\n';
+  out << "  Renamed: " << obj->renamed << '\n';
+  return out;
 }
+
+void RepoArea::debug() { cerr << this; }
 
 void RepoArea::parseModified(const char &ltr) {
   if (ltr == 'M') {

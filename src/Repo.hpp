@@ -2,6 +2,7 @@
 #define REPO_H
 
 #include "RepoArea.hpp"
+#include <iostream>
 #include <string>
 
 class Repo {
@@ -9,7 +10,6 @@ public:
   std::string workingDir, gitDir, branch, commit, remote, upstream;
   int stashed, ahead, behind, untracked, unmerged, insertions, deletions;
   RepoArea Unstaged, Staged;
-
   Repo() {
     stashed = 0;
     ahead = 0;
@@ -21,6 +21,7 @@ public:
     Unstaged = RepoArea();
     Staged = RepoArea();
   };
+  friend std::ostream &operator<<(std::ostream &out, Repo *obj);
   void debug(void);
   void parseBranch(const std::string &str);
   void parseTrackedFile(const std::string &str);

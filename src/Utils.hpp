@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-std::string Run(std::string cmd);
+const std::string Run(std::string cmd);
 std::vector<std::string> split(const std::string &str, char delim);
 const std::string vformat(const char *const zcFormat, ...);
 

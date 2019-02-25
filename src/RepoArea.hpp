@@ -1,5 +1,6 @@
 #ifndef REPO_AREA_H
 #define REPO_AREA_H
+#include <iostream>
 
 class RepoArea {
 public:
@@ -10,7 +11,8 @@ public:
     deleted = 0;
     renamed = 0;
     copied = 0;
-  };
+  }
+  friend std::ostream &operator<<(std::ostream &out, RepoArea *obj);
   void debug();
   void parseModified(const char &ltr);
 };
