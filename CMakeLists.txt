@@ -23,10 +23,10 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 set(SOURCE_FILES
         src/Main.cc
         src/Repo.cc
-        src/Repo.h
+        src/Repo.hpp
         src/RepoArea.cc
-        src/RepoArea.h
+        src/RepoArea.hpp
         src/Utils.cc
-        src/Utils.h
+        src/Utils.hpp
 )
 add_executable(gitpr ${SOURCE_FILES})

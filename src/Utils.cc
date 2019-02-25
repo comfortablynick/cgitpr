@@ -1,5 +1,5 @@
 // Generic utility functions
-#include "Utils.h"
+#include "Utils.hpp"
 #include <cstdarg>
 #include <sstream>
 

@@ -1,5 +1,5 @@
-#include "Repo.h"
-#include "Utils.h"
+#include "Repo.hpp"
+#include "Utils.hpp"
 
 #include <iostream>
 #include <string>

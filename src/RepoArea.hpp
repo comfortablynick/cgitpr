@@ -1,8 +1,5 @@
 #ifndef REPO_AREA_H
 #define REPO_AREA_H
-#include <string>
-
-using namespace std;
 
 class RepoArea {
 public:
@@ -13,7 +10,7 @@ public:
     deleted = 0;
     renamed = 0;
     copied = 0;
-  }
+  };
   void debug();
   void parseModified(const char &ltr);
 };
