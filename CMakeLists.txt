@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.6)
-project (gitpr)
+project (cgitpr)
 set(CMAKE_CXX_STANDARD 17)
 
 # detect operating system and host processor
@@ -18,10 +18,11 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 
 
 # executable
-# set(SOURCE_FILES gitpr.cpp)
 
 set(SOURCE_FILES
         src/Main.cc
+        src/Options.cc
+        src/Options.hpp
         src/Repo.cc
         src/Repo.hpp
         src/RepoArea.cc
@@ -29,4 +30,9 @@ set(SOURCE_FILES
         src/Utils.cc
         src/Utils.hpp
 )
-add_executable(gitpr ${SOURCE_FILES})
+# include_directories(include)
+add_subdirectory(src/spdlog)
+add_executable(cgitpr ${SOURCE_FILES})
+target_link_libraries(cgitpr spdlog::spdlog)
+
+install(TARGETS cgitpr DESTINATION $ENV{HOME}/bin)
