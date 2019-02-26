@@ -1,8 +1,7 @@
 #include "RepoArea.hpp"
 #include <iostream>
+#include <sstream>
 #include <string>
-
-using namespace std;
 
 std::ostream &operator<<(std::ostream &out, RepoArea *obj) {
   out << "  Added: " << obj->added << '\n';
@@ -13,7 +12,13 @@ std::ostream &operator<<(std::ostream &out, RepoArea *obj) {
   return out;
 }
 
-void RepoArea::debug() { cerr << this; }
+void RepoArea::debug() { std::cerr << this; }
+
+std::string RepoArea::print() {
+  std::stringstream ss;
+  ss << this;
+  return ss.str();
+}
 
 void RepoArea::parseModified(const char &ltr) {
   if (ltr == 'M') {

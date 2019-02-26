@@ -13,7 +13,8 @@ public:
     copied = 0;
   }
   friend std::ostream &operator<<(std::ostream &out, RepoArea *obj);
-  void debug();
+  void debug(void);
+  std::string print(void);
   void parseModified(const char &ltr);
 };
 

@@ -23,6 +23,7 @@ public:
   };
   friend std::ostream &operator<<(std::ostream &out, Repo *obj);
   void debug(void);
+  std::string print(void);
   void parseBranch(const std::string &str);
   void parseTrackedFile(const std::string &str);
   void parseGitStatus(const std::string &str);

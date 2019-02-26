@@ -1,52 +1,11 @@
+#include "Options.hpp"
 #include "Repo.hpp"
 #include "Utils.hpp"
+#include "spdlog/sinks/stdout_color_sinks.h"
 #include <iostream>
 #include <stdlib.h>
 #include <string>
 #include <vector>
-
-class Options {
-public:
-  bool debug_print, show_ahead_behind, show_branch, show_branch_glyph,
-      show_commit, show_diff, show_remote, show_stashed, show_staged_modified,
-      show_unstaged_modified, show_untracked, show_vcs;
-  std::string format;
-  Options() {
-    debug_print = false;
-    show_ahead_behind = false;
-    show_branch = false;
-    show_branch_glyph = false;
-    show_commit = false;
-    show_diff = false;
-    show_remote = false;
-    show_stashed = false;
-    show_staged_modified = false;
-    show_unstaged_modified = false;
-    show_untracked = false;
-    show_vcs = false;
-  }
-  friend std::ostream &operator<<(std::ostream &out, Options *obj) {
-    out << "Options:" << '\n';
-    out << "  Show ahead/behind: " << obj->show_ahead_behind << '\n';
-    out << "  Show branch: " << obj->show_branch << '\n';
-    out << "  Show branch glyph: " << obj->show_branch_glyph << '\n';
-    out << "  Show commit: " << obj->show_commit << '\n';
-    out << "  Show diff: " << obj->show_diff << '\n';
-    out << "  Show remote: " << obj->show_remote << '\n';
-    out << "  Show stashed: " << obj->show_stashed << '\n';
-    out << "  Show staged modified: " << obj->show_staged_modified << '\n';
-    out << "  Show unstaged modified: " << obj->show_unstaged_modified << '\n';
-    out << "  Show untracked: " << obj->show_untracked << '\n';
-    out << "  Show vcs: " << obj->show_vcs << '\n';
-    out << "  Format: " << obj->format << '\n';
-    return out;
-  }
-  void debug() {
-    if (debug_print) {
-      std::cerr << this;
-    }
-  }
-};
 
 void parseFmtStr(Options *opts) {
   const std::string &fmt = opts->format;
@@ -94,28 +53,35 @@ void parseFmtStr(Options *opts) {
 }
 
 int main() {
+  Options *opts;
   Repo *ri;
   RepoArea *unstaged;
   RepoArea *staged;
 
+  opts = new Options;
   ri = new Repo;
   unstaged = new RepoArea;
   staged = new RepoArea;
 
+  opts->format = "%g (%b@%c) %m %n %a %d %%";
+  opts->debug_print = true;
   ri->Unstaged = *unstaged;
   ri->Staged = *staged;
+
   const std::string gitStatus = Run("git status --porcelain=2 --branch");
   std::vector<std::string> statusLines = split(gitStatus, '\n');
   for (int i = 0; i < statusLines.size(); i++) {
     ri->parseGitStatus(statusLines[i]);
   }
-  ri->debug();
-  Options *opts;
-  opts = new Options;
-  opts->format = "%g (%b@%c) %m %n %a %d %%";
-  opts->debug_print = true;
+
+  // logger
+  auto clog = spdlog::stderr_color_mt("cgitpr");
+  clog->set_level(spdlog::level::debug);
+  clog->info("Console log level: {}",
+             spdlog::level::to_string_view(clog->level()));
+  clog->info(ri->print());
   parseFmtStr(opts);
-  opts->debug();
+  clog->info(opts->print());
 
   delete opts;
   delete ri;

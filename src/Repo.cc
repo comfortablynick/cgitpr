@@ -2,10 +2,12 @@
 #include "Utils.hpp"
 
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
 std::ostream &operator<<(std::ostream &out, Repo *obj) {
+  out << "Repo:\n";
   out << "Working Dir: " << obj->workingDir << '\n';
   out << "Git Dir: " << obj->gitDir << '\n';
   out << "Branch: " << obj->branch << '\n';
@@ -19,13 +21,19 @@ std::ostream &operator<<(std::ostream &out, Repo *obj) {
   out << "Insertions: " << obj->insertions << '\n';
   out << "Deletions: " << obj->deletions << '\n';
   out << "Staged:\n";
-  obj->Staged.debug();
+  out << obj->Staged.print();
   out << "Unstaged:\n";
-  obj->Unstaged.debug();
+  out << obj->Unstaged.print();
   return out;
 }
 
 void Repo::debug(void) { std::cerr << this; }
+
+std::string Repo::print(void) {
+  std::stringstream ss;
+  ss << this;
+  return ss.str();
+}
 
 void Repo::parseBranch(const std::string &str) {
   std::vector<std::string> words = split(str, ' ');
