@@ -1,7 +1,8 @@
 #include "Options.hpp"
 #include "Repo.hpp"
 #include "Utils.hpp"
-#include "spdlog/sinks/stdout_color_sinks.h"
+#include "gflags/gflags.h"
+#include "glog/logging.h"
 #include <iostream>
 #include <stdlib.h>
 #include <string>
@@ -42,17 +43,65 @@ void parseFmtStr(Options *opts) {
         break;
       case 's':
         opts->show_staged_modified = true;
+        break;
+      case 't':
+        opts->show_stashed = true;
+        break;
+      case 'u':
+        opts->show_untracked = true;
+        break;
       case '%':
         break;
       default:
-        fprintf(stderr, "error: token '%c' not recognized\n", fmt[i]);
+        std::cerr << "error: token '" << fmt[i] << "' not recognized\n";
         exit(1);
       }
     }
   }
 }
 
-int main() {
+DEFINE_string(format, "%g %b@%c %a %m %u %s",
+              "tokenized string for formatting output");
+DEFINE_bool(debug, false, "print debug logs");
+
+int main(int argc, char *argv[]) {
+  // logger init
+  google::InitGoogleLogging(argv[0]);
+  google::SetStderrLogging(google::INFO);
+
+  // arg parsing
+  gflags::SetUsageMessage("git repo status for shell prompt, written in C++");
+  gflags::SetVersionString("0.0.1");
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+  // args.hpp parser {{{
+  // args::ArgumentParser parser(
+  //     "git repo status for shell prompt, written in C++");
+  // parser.Prog(argv[0]);
+  // args::HelpFlag help(parser, "help", "Display this help menu and exit",
+  //                     {'h', "help"});
+  // args::CompletionFlag completion(parser, {"complete"});
+  // args::Flag debug(parser, "debug", "display log messages", {'d', "debug"});
+  //
+  // try {
+  //   parser.ParseCLI(argc, argv);
+  // } catch (const args::Completion &e) {
+  //   std::cout << e.what();
+  //   return 0;
+  // } catch (const args::Help &) {
+  //   std::cout << parser;
+  //   return 0;
+  // } catch (const args::ParseError &e) {
+  //   std::cerr << e.what() << std::endl;
+  //   std::cerr << parser;
+  //   return 1;
+  // }
+  //
+  // if (args::get(debug)) {
+  //   google::SetStderrLogging(google::INFO);
+  // }
+  // }}}
+
   Options *opts;
   Repo *ri;
   RepoArea *unstaged;
@@ -63,7 +112,8 @@ int main() {
   unstaged = new RepoArea;
   staged = new RepoArea;
 
-  opts->format = "%g (%b@%c) %m %n %a %d %%";
+  // opts->format = "%g (%b@%c) %m %n %a %d %%";
+  opts->format = FLAGS_format;
   opts->debug_print = true;
   ri->Unstaged = *unstaged;
   ri->Staged = *staged;
@@ -74,18 +124,21 @@ int main() {
     ri->parseGitStatus(statusLines[i]);
   }
 
-  // logger
-  auto clog = spdlog::stderr_color_mt("cgitpr");
-  clog->set_level(spdlog::level::debug);
-  clog->info("Console log level: {}",
-             spdlog::level::to_string_view(clog->level()));
-  clog->info(ri->print());
+  VLOG(1) << ri;
+
   parseFmtStr(opts);
-  clog->info(opts->print());
+
+  VLOG(1) << opts;
+
+  VLOG(2) << "All command line flags:\n"
+          << gflags::CommandlineFlagsIntoString() << std::endl;
+  std::cout << "Format string: " << FLAGS_format << std::endl;
 
   delete opts;
   delete ri;
   delete unstaged;
   delete staged;
+
+  gflags::ShutDownCommandLineFlags();
   return 0;
 }
