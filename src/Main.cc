@@ -3,142 +3,157 @@
 #include "Utils.hpp"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
+#include "rang.hpp"
+#include <getopt.h>
 #include <iostream>
 #include <stdlib.h>
 #include <string>
 #include <vector>
 
-void parseFmtStr(Options *opts) {
-  const std::string &fmt = opts->format;
+// init singleton class pointers
+Options* Options::instance = nullptr;
+Repo* Repo::instance = nullptr;
 
-  for (std::string::size_type i = 0; i < fmt.length(); i++) {
-    if (fmt[i] == '%') {
-      i++;
-      switch (fmt[i]) {
-      case '\0': // end of string
-        break;
-      case 'a':
-        opts->show_ahead_behind = true;
-        break;
-      case 'b':
-        opts->show_branch = true;
-        break;
-      case 'c':
-        opts->show_commit = true;
-        break;
-      case 'd':
-        opts->show_diff = true;
-        break;
-      case 'g':
-        opts->show_branch_glyph = true;
-        break;
-      case 'm':
-        opts->show_unstaged_modified = true;
-        break;
-      case 'n':
-        opts->show_vcs = true;
-        break;
-      case 'r':
-        opts->show_remote = true;
-        break;
-      case 's':
-        opts->show_staged_modified = true;
-        break;
-      case 't':
-        opts->show_stashed = true;
-        break;
-      case 'u':
-        opts->show_untracked = true;
-        break;
-      case '%':
-        break;
-      default:
-        std::cerr << "error: token '" << fmt[i] << "' not recognized\n";
-        exit(1);
-      }
-    }
-  }
-}
-
+// command-line flags
 DEFINE_string(format, "%g %b@%c %a %m %u %s",
               "tokenized string for formatting output");
 DEFINE_bool(debug, false, "print debug logs");
+DEFINE_bool(h, false, "print short help for cgitpr only");
 
-int main(int argc, char *argv[]) {
-  // logger init
-  google::InitGoogleLogging(argv[0]);
-  google::SetStderrLogging(google::INFO);
+int parseFmtStr(Options* opts) {
+    const std::string& fmt = FLAGS_format;
 
-  // arg parsing
-  gflags::SetUsageMessage("git repo status for shell prompt, written in C++");
-  gflags::SetVersionString("0.0.1");
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+    for (std::string::size_type i = 0; i < FLAGS_format.length(); i++) {
+        if (FLAGS_format[i] == '%') {
+            i++;
+            switch (FLAGS_format[i]) {
+            case '\0': // end of string
+                break;
+            case 'a':
+                opts->show_ahead_behind = true;
+                break;
+            case 'b':
+                opts->show_branch = true;
+                break;
+            case 'c':
+                opts->show_commit = true;
+                break;
+            case 'd':
+                opts->show_diff = true;
+                break;
+            case 'g':
+                opts->show_branch_glyph = true;
+                break;
+            case 'm':
+                opts->show_unstaged_modified = true;
+                break;
+            case 'n':
+                opts->show_vcs = true;
+                break;
+            case 'r':
+                opts->show_remote = true;
+                break;
+            case 's':
+                opts->show_staged_modified = true;
+                break;
+            case 't':
+                opts->show_stashed = true;
+                break;
+            case 'u':
+                opts->show_untracked = true;
+                break;
+            case '%':
+                break;
+            default:
+                std::cerr << "error: token '" << FLAGS_format[i]
+                          << "' not recognized\n";
+                // exit(1);
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
 
-  // args.hpp parser {{{
-  // args::ArgumentParser parser(
-  //     "git repo status for shell prompt, written in C++");
-  // parser.Prog(argv[0]);
-  // args::HelpFlag help(parser, "help", "Display this help menu and exit",
-  //                     {'h', "help"});
-  // args::CompletionFlag completion(parser, {"complete"});
-  // args::Flag debug(parser, "debug", "display log messages", {'d', "debug"});
-  //
-  // try {
-  //   parser.ParseCLI(argc, argv);
-  // } catch (const args::Completion &e) {
-  //   std::cout << e.what();
-  //   return 0;
-  // } catch (const args::Help &) {
-  //   std::cout << parser;
-  //   return 0;
-  // } catch (const args::ParseError &e) {
-  //   std::cerr << e.what() << std::endl;
-  //   std::cerr << parser;
-  //   return 1;
-  // }
-  //
-  // if (args::get(debug)) {
-  //   google::SetStderrLogging(google::INFO);
-  // }
-  // }}}
+void printShortHelp(void) {
+    std::cerr
+        << "cgitpr: git repo status for your prompt, written in C++.\n"
+        << rang::fgB::yellow << "\nUSAGE:\n"
+        << rang::fgB::green << "  cgitpr [FLAGS] [OPTIONS]\n"
+        << rang::fgB::yellow << "\nFLAGS:\n"
+        << rang::style::reset
+        << "  -h           Show this help message and exit\n"
+           "  --help       Show all options from all packages\n"
+        << rang::fgB::yellow << "\nOPTIONS:\n"
+        << rang::style::reset
+        << "  -v <n>              Log verbosity\n"
+           "  -d, --dir <dir>     Git directory (default: \".\")\n"
+           "  -f, --format <fmt>  Tokenized format string for git status\n"
+        << rang::fgB::yellow << "\nFORMAT STRING:\n"
+        << rang::style::reset
+        << "Format string may contain:\n"
+           "  %g  branch glyph ()\n"
+           "  %n  VC name\n"
+           "  %b  branch\n"
+           "  %r  remote\n"
+           "  %a  commits ahead/behind remote\n"
+           "  %c  current commit hash\n"
+           "  %m  unstaged changes (modified/added/removed)\n"
+           "  %s  staged changes (modified/added/removed)\n"
+           "  %u  untracked files\n"
+           "  %d  diff lines, ex: \"+20/-10\"\n"
+           "  %t  stashed files indicator\n"
+        << rang::style::bold
+        << "\nNote: all arguments may be prefixed with either `-` or `--`"
+        << rang::style::reset << std::endl;
+}
 
-  Options *opts;
-  Repo *ri;
-  RepoArea *unstaged;
-  RepoArea *staged;
+int main(int argc, char* argv[]) {
+    // logger init
+    google::InitGoogleLogging(argv[0]);
+    google::SetStderrLogging(google::INFO);
 
-  opts = new Options;
-  ri = new Repo;
-  unstaged = new RepoArea;
-  staged = new RepoArea;
+    // arg parsing
+    gflags::SetUsageMessage("git repo status for shell prompt, written in C++");
+    gflags::SetVersionString("0.0.1");
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  // opts->format = "%g (%b@%c) %m %n %a %d %%";
-  opts->format = FLAGS_format;
-  opts->debug_print = true;
-  ri->Unstaged = *unstaged;
-  ri->Staged = *staged;
+    if (FLAGS_h) {
+        printShortHelp();
+        return 1;
+    }
 
-  const std::string gitStatus = Run("git status --porcelain=2 --branch");
-  std::vector<std::string> statusLines = split(gitStatus, '\n');
-  for (int i = 0; i < statusLines.size(); i++) {
-    ri->parseGitStatus(statusLines[i]);
-  }
+    Options* opts = opts->getInstance(); // static singleton
+    Repo* ri = ri->getInstance();        // static singleton
+    RepoArea* unstaged = new RepoArea();
+    RepoArea* staged = new RepoArea();
 
-  VLOG(1) << ri;
+    opts->format = FLAGS_format;
+    opts->debug_print = true;
+    ri->Unstaged = *unstaged;
+    ri->Staged = *staged;
 
-  parseFmtStr(opts);
+    const std::string gitStatus = run("git status --porcelain=2 --branch");
+    std::vector<std::string> statusLines = split(gitStatus, '\n');
+    for (size_t i = 0; i < statusLines.size(); i++) {
+        ri->parseGitStatus(statusLines[i]);
+    }
 
-  VLOG(1) << opts;
+    VLOG(1) << ri;
 
-  VLOG(2) << "All command line flags:\n"
-          << gflags::CommandlineFlagsIntoString() << std::endl;
-  std::cout << "Format string: " << FLAGS_format << std::endl;
+    if (parseFmtStr(opts) == 1) {
+        return 1;
+    }
 
-  delete opts;
-  delete ri;
-  delete unstaged;
-  delete staged;
+    VLOG(1) << opts;
 
-  gflags::ShutDownCommandLineFlags();
-  return 0;
+    VLOG(2) << "All command line flags:\n"
+            << gflags::CommandlineFlagsIntoString() << std::endl;
+    std::cout << "Format string: " << FLAGS_format << std::endl;
+
+    delete unstaged;
+    delete staged;
+
+    gflags::ShutDownCommandLineFlags();
+    return 0;
 }

@@ -1,7 +1,7 @@
 [requires]
 glog/0.3.5@bincrafters/stable
 gflags/2.2.1@bincrafters/stable
-args/6.2.2@pavel-belikov/stable
+rang/3.1.0@rang/stable
 
 [generators]
 cmake
