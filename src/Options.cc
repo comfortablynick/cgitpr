@@ -2,7 +2,8 @@
 #include <iostream>
 #include <sstream>
 
-std::ostream& operator<<(std::ostream& out, Options* obj) {
+std::ostream& operator<<(std::ostream& out, Options* obj)
+{
     out << "Options:" << '\n';
     out << "  Show ahead/behind: " << obj->show_ahead_behind << '\n';
     out << "  Show branch: " << obj->show_branch << '\n';
@@ -16,16 +17,19 @@ std::ostream& operator<<(std::ostream& out, Options* obj) {
     out << "  Show untracked: " << obj->show_untracked << '\n';
     out << "  Show vcs: " << obj->show_vcs << '\n';
     out << "  Format: " << obj->format << '\n';
+    out << "  Dir: " << obj->dir << '\n';
     return out;
 }
 
-void Options::debug() {
+void Options::debug()
+{
     if (this->debug_print) {
         std::cerr << this;
     }
 }
 
-std::string Options::print() {
+std::string Options::print()
+{
     std::stringstream ss;
     ss << this;
     return ss.str();

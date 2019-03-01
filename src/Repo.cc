@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-std::ostream& operator<<(std::ostream& out, Repo* obj) {
+std::ostream& operator<<(std::ostream& out, Repo* obj)
+{
     out << "Repo:\n";
-    out << "Working Dir: " << obj->workingDir << '\n';
     out << "Git Dir: " << obj->gitDir << '\n';
     out << "Branch: " << obj->branch << '\n';
     out << "Commit: " << obj->commit << '\n';
@@ -29,13 +29,15 @@ std::ostream& operator<<(std::ostream& out, Repo* obj) {
 
 void Repo::debug(void) { std::cerr << this; }
 
-std::string Repo::print(void) {
+std::string Repo::print(void)
+{
     std::stringstream ss;
     ss << this;
     return ss.str();
 }
 
-void Repo::parseBranch(const std::string& str) {
+void Repo::parseBranch(const std::string& str)
+{
     std::vector<std::string> words = split(str, ' ');
     if (words[1] == "branch.oid") {
         commit = words[2];
@@ -52,13 +54,15 @@ void Repo::parseBranch(const std::string& str) {
     }
 }
 
-void Repo::parseTrackedFile(const std::string& str) {
+void Repo::parseTrackedFile(const std::string& str)
+{
     std::vector<std::string> words = split(str, ' ');
     Staged.parseModified(words[1][0]);
     Unstaged.parseModified(words[1][1]);
 }
 
-void Repo::parseGitStatus(const std::string& str) {
+void Repo::parseGitStatus(const std::string& str)
+{
     std::vector<std::string> words = split(str, ' ');
     if (words[0] == "#") {
         parseBranch(str);

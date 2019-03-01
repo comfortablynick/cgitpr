@@ -26,7 +26,7 @@ class Repo
         if (instance == 0) instance = new Repo();
         return instance;
     }
-    std::string workingDir, gitDir, branch, commit, remote, upstream;
+    std::string gitDir, branch, commit, remote, upstream;
     int stashed, ahead, behind, untracked, unmerged, insertions, deletions;
     RepoArea Unstaged, Staged;
     friend std::ostream& operator<<(std::ostream& out, Repo* obj);

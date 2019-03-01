@@ -51,7 +51,6 @@ set(SOURCE_FILES
 )
 
 add_executable(cgitpr ${SOURCE_FILES})
-# target_link_libraries(cgitpr glog::glog gflags)
 target_link_libraries(cgitpr ${CONAN_LIBS})
 
 install(TARGETS cgitpr DESTINATION $ENV{HOME}/bin)

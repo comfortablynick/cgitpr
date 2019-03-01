@@ -1,32 +1,31 @@
 #include "Options.hpp"
 #include "Repo.hpp"
 #include "Utils.hpp"
-#include "gflags/gflags.h"
-#include "glog/logging.h"
+#include "easylogging++.h"
 #include "rang.hpp"
 #include <getopt.h>
 #include <iostream>
-#include <stdlib.h>
 #include <string>
 #include <vector>
+
+INITIALIZE_EASYLOGGINGPP
+#define ELPP_STL_LOGGING
+
+// globals
+static const std::string version = "0.0.1";
 
 // init singleton class pointers
 Options* Options::instance = nullptr;
 Repo* Repo::instance = nullptr;
 
-// command-line flags
-DEFINE_string(format, "%g %b@%c %a %m %u %s",
-              "tokenized string for formatting output");
-DEFINE_bool(debug, false, "print debug logs");
-DEFINE_bool(h, false, "print short help for cgitpr only");
+int parseFmtStr(Options* opts)
+{
+    std::string& fmt = opts->format;
 
-int parseFmtStr(Options* opts) {
-    const std::string& fmt = FLAGS_format;
-
-    for (std::string::size_type i = 0; i < FLAGS_format.length(); i++) {
-        if (FLAGS_format[i] == '%') {
+    for (std::string::size_type i = 0; i < fmt.length(); i++) {
+        if (fmt[i] == '%') {
             i++;
-            switch (FLAGS_format[i]) {
+            switch (fmt[i]) {
             case '\0': // end of string
                 break;
             case 'a':
@@ -65,70 +64,122 @@ int parseFmtStr(Options* opts) {
             case '%':
                 break;
             default:
-                std::cerr << "error: token '" << FLAGS_format[i]
-                          << "' not recognized\n";
-                // exit(1);
-                return 1;
+                std::cerr << "error: token '" << fmt[i] << "' not recognized\n";
+                exit(1);
             }
         }
     }
     return 0;
 }
 
-void printShortHelp(void) {
-    std::cerr
-        << "cgitpr: git repo status for your prompt, written in C++.\n"
-        << rang::fgB::yellow << "\nUSAGE:\n"
-        << rang::fgB::green << "  cgitpr [FLAGS] [OPTIONS]\n"
-        << rang::fgB::yellow << "\nFLAGS:\n"
-        << rang::style::reset
-        << "  -h           Show this help message and exit\n"
-           "  --help       Show all options from all packages\n"
-        << rang::fgB::yellow << "\nOPTIONS:\n"
-        << rang::style::reset
-        << "  -v <n>              Log verbosity\n"
-           "  -d, --dir <dir>     Git directory (default: \".\")\n"
-           "  -f, --format <fmt>  Tokenized format string for git status\n"
-        << rang::fgB::yellow << "\nFORMAT STRING:\n"
-        << rang::style::reset
-        << "Format string may contain:\n"
-           "  %g  branch glyph ()\n"
-           "  %n  VC name\n"
-           "  %b  branch\n"
-           "  %r  remote\n"
-           "  %a  commits ahead/behind remote\n"
-           "  %c  current commit hash\n"
-           "  %m  unstaged changes (modified/added/removed)\n"
-           "  %s  staged changes (modified/added/removed)\n"
-           "  %u  untracked files\n"
-           "  %d  diff lines, ex: \"+20/-10\"\n"
-           "  %t  stashed files indicator\n"
-        << rang::style::bold
-        << "\nNote: all arguments may be prefixed with either `-` or `--`"
-        << rang::style::reset << std::endl;
+void printShortHelp(void)
+{
+    std::cerr << rang::fgB::green << "cgitpr " << rang::style::reset << version
+              << "\ngit repo status for your prompt, written in C++.\n"
+              << "Nick Murphy <comfortablynick@gmail.com>\n"
+              << rang::fgB::yellow << "\nUSAGE:\n"
+              << rang::fgB::green << "  cgitpr [FLAGS] [OPTIONS]\n"
+              << rang::fgB::yellow << "\nFLAGS:\n"
+              << rang::style::reset
+              << "  -h      Show this help message and exit\n"
+                 "  --help  Show all options from all packages\n"
+              << rang::fgB::yellow << "\nOPTIONS:\n"
+              << rang::style::reset
+              << "  -v, --verbose <n>   Log verbosity [1-9]; omitting <n> is the same as --v=9\n"
+                 "  -d, --dir <dir>     Git directory (default: \".\")\n"
+                 "  -f, --format <fmt>  Tokenized format string for git status\n"
+              << "\nFormat string may contain:\n"
+                 "  %g  branch glyph ()\n"
+                 "  %n  VC name\n"
+                 "  %b  branch\n"
+                 "  %r  remote\n"
+                 "  %a  commits ahead/behind remote\n"
+                 "  %c  current commit hash\n"
+                 "  %m  unstaged changes (modified/added/removed)\n"
+                 "  %s  staged changes (modified/added/removed)\n"
+                 "  %u  untracked files\n"
+                 "  %d  diff lines, ex: \"+20/-10\"\n"
+                 "  %t  stashed files indicator\n"
+              << std::endl;
+    // << rang::style::bold
+    // << "\nNote: all arguments may be prefixed with either `-` or `--`"
+    // << rang::style::reset << std::endl;
 }
 
-int main(int argc, char* argv[]) {
-    // logger init
-    google::InitGoogleLogging(argv[0]);
-    google::SetStderrLogging(google::INFO);
+void processArgs(int argc, char** argv, Options* opts)
+{
+    const char* const short_opts = ":d:v::f:d:h:V";
+    const option long_opts[] = {
+        {"dir", required_argument, nullptr, 'd'},    {"verbose", optional_argument, nullptr, 'v'},
+        {"format", required_argument, nullptr, 'f'}, {"help", no_argument, nullptr, 'h'},
+        {"version", no_argument, nullptr, 'V'},      {nullptr, no_argument, nullptr, 0}};
 
-    // arg parsing
-    gflags::SetUsageMessage("git repo status for shell prompt, written in C++");
-    gflags::SetVersionString("0.0.1");
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    if (FLAGS_h) {
-        printShortHelp();
-        return 1;
+    while (true) {
+        const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
+
+        if (-1 == opt) break;
+
+        switch (opt) {
+        case 'h':
+            printShortHelp();
+            exit(1);
+            break;
+        case 'd':
+            opts->dir = optarg;
+            break;
+        case 'v':
+            if (optarg != NULL) {
+                el::Loggers::setVerboseLevel(std::atoi(optarg));
+            } else {
+                el::Loggers::setVerboseLevel(9);
+            }
+            LOG(INFO) << "processArgs: Verbosity set to: " << el::Loggers::verboseLevel();
+            break;
+        case 'V':
+            std::cerr << rang::fgB::green << argv[0] << rang::style::reset << " " << version
+                      << "\n";
+            exit(1);
+        case 'f':
+            opts->format = std::string(optarg);
+            break;
+        case '?':
+            // TODO: does not print if not a char; figure out how to parse any values
+            LOG(ERROR) << "Parsing error: unknown opt '" << (char)optopt << "'\n";
+            printShortHelp();
+            exit(1);
+        case ':':
+            LOG(ERROR) << "Parsing error: missing arg for '" << (char)optopt << "'\n";
+            printShortHelp();
+            exit(1);
+        default:
+            printShortHelp();
+            exit(1);
+        }
+    }
+}
+
+int main(int argc, char* argv[])
+{
+    /* LOGGER */
+    el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
+    // el::Logger* console = el::Loggers::getLogger("default"); // needed for printf-style logging
+    Options* opts = opts->getInstance(); // static singleton
+    processArgs(argc, argv, opts);
+
+    // log raw cli arguments
+    if (VLOG_IS_ON(2)) {
+        for (size_t i = 0; i < argc; i++) {
+            VLOG(2) << "Arg " << i << ". " << argv[i];
+        }
     }
 
-    Options* opts = opts->getInstance(); // static singleton
-    Repo* ri = ri->getInstance();        // static singleton
+    CHECK(opts->format != "");
+
+    Repo* ri = ri->getInstance(); // static singleton
     RepoArea* unstaged = new RepoArea();
     RepoArea* staged = new RepoArea();
 
-    opts->format = FLAGS_format;
     opts->debug_print = true;
     ri->Unstaged = *unstaged;
     ri->Staged = *staged;
@@ -147,13 +198,10 @@ int main(int argc, char* argv[]) {
 
     VLOG(1) << opts;
 
-    VLOG(2) << "All command line flags:\n"
-            << gflags::CommandlineFlagsIntoString() << std::endl;
-    std::cout << "Format string: " << FLAGS_format << std::endl;
+    std::cout << opts->format << std::endl;
 
     delete unstaged;
     delete staged;
 
-    gflags::ShutDownCommandLineFlags();
     return 0;
 }
