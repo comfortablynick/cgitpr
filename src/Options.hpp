@@ -19,7 +19,7 @@ class Options
         show_unstaged_modified = false;
         show_untracked = false;
         show_vcs = false;
-        format = "[%n:%b]";
+        format = "[%n:%b] %d";
         dir = ".";
     }
 

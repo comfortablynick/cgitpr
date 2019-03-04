@@ -1,11 +1,13 @@
 #include "Repo.hpp"
 #include "Utils.hpp"
+#include <easylogging++.h>
 
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
+el::Logger* console = el::Loggers::getLogger("");
 std::ostream& operator<<(std::ostream& out, Repo* obj)
 {
     out << "Repo:\n";
@@ -76,4 +78,13 @@ void Repo::parseGitStatus(const std::string& str)
     if (words[0] == "?") {
         untracked++;
     }
+}
+
+void Repo::parseGitDiff(const std::string& str)
+{
+    console->trace("%v", str);
+    std::vector<std::string> words = split(str, ' ');
+
+    VLOG(1) << words[0];
+    for (auto word : words) console->info("%v", word);
 }

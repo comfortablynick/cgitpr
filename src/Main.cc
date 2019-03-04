@@ -101,9 +101,6 @@ void printShortHelp(void)
                  "  %d  diff lines, ex: \"+20/-10\"\n"
                  "  %t  stashed files indicator\n"
               << std::endl;
-    // << rang::style::bold
-    // << "\nNote: all arguments may be prefixed with either `-` or `--`"
-    // << rang::style::reset << std::endl;
 }
 
 void processArgs(int argc, char** argv, Options* opts)
@@ -113,7 +110,6 @@ void processArgs(int argc, char** argv, Options* opts)
         {"dir", required_argument, nullptr, 'd'},    {"verbose", optional_argument, nullptr, 'v'},
         {"format", required_argument, nullptr, 'f'}, {"help", no_argument, nullptr, 'h'},
         {"version", no_argument, nullptr, 'V'},      {nullptr, no_argument, nullptr, 0}};
-
 
     while (true) {
         const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
@@ -163,7 +159,9 @@ int main(int argc, char* argv[])
 {
     /* LOGGER */
     el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
-    // el::Logger* console = el::Loggers::getLogger("default"); // needed for printf-style logging
+    el::Logger* console = el::Loggers::getLogger("default"); // needed for printf-style logging
+    console->enabled(el::Level::Trace);
+    // el::Loggers::setLoggingLevel(el::Level::Trace);
     Options* opts = opts->getInstance(); // static singleton
     processArgs(argc, argv, opts);
 
@@ -192,11 +190,18 @@ int main(int argc, char* argv[])
 
     VLOG(1) << ri;
 
-    if (parseFmtStr(opts) == 1) {
-        return 1;
-    }
+    if (parseFmtStr(opts) == 1) return 1;
 
     VLOG(1) << opts;
+
+    if (opts->show_diff == 1) {
+        const std::string gitDiff = run("git diff --numstat");
+        std::vector<std::string> diffLines = split(gitDiff, '\n');
+        for (size_t i = 0; i < diffLines.size(); i++) {
+            // VLOG(1) << diffLines[i];
+            ri->parseGitDiff(diffLines[i]);
+        }
+    }
 
     std::cout << opts->format << std::endl;
 

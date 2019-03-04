@@ -9,7 +9,8 @@ class Repo
 {
   private:
     static Repo* instance;
-    Repo() {
+    Repo()
+    {
         stashed = 0;
         ahead = 0;
         behind = 0;
@@ -22,7 +23,8 @@ class Repo
     };
 
   public:
-    static Repo* getInstance() {
+    static Repo* getInstance()
+    {
         if (instance == 0) instance = new Repo();
         return instance;
     }
@@ -35,6 +37,7 @@ class Repo
     void parseBranch(const std::string& str);
     void parseTrackedFile(const std::string& str);
     void parseGitStatus(const std::string& str);
+    void parseGitDiff(const std::string& str);
 };
 
 #endif // REPO_H
