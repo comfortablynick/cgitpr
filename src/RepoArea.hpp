@@ -6,7 +6,8 @@ class RepoArea
 {
   public:
     int modified, added, deleted, renamed, copied;
-    RepoArea() {
+    RepoArea()
+    {
         modified = 0;
         added = 0;
         deleted = 0;
@@ -17,6 +18,7 @@ class RepoArea
     void debug(void);
     std::string print(void);
     void parseModified(const char& ltr);
+    bool hasChanged(void);
 };
 
 #endif // REPO_AREA_H

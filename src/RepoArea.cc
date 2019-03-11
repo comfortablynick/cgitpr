@@ -3,24 +3,28 @@
 #include <sstream>
 #include <string>
 
-std::ostream& operator<<(std::ostream& out, RepoArea* obj) {
+std::ostream& operator<<(std::ostream& out, RepoArea* obj)
+{
     out << "  Added: " << obj->added << '\n';
     out << "  Copied: " << obj->copied << '\n';
     out << "  Deleted: " << obj->deleted << '\n';
     out << "  Modified: " << obj->modified << '\n';
     out << "  Renamed: " << obj->renamed << '\n';
+    out << "  Dirty: " << obj->hasChanged() << '\n';
     return out;
 }
 
 void RepoArea::debug() { std::cerr << this; }
 
-std::string RepoArea::print() {
+std::string RepoArea::print()
+{
     std::stringstream ss;
     ss << this;
     return ss.str();
 }
 
-void RepoArea::parseModified(const char& ltr) {
+void RepoArea::parseModified(const char& ltr)
+{
     if (ltr == 'M') {
         modified++;
     }
@@ -36,4 +40,9 @@ void RepoArea::parseModified(const char& ltr) {
     if (ltr == 'C') {
         copied++;
     }
+}
+
+bool RepoArea::hasChanged()
+{
+    return this->added + this->copied + this->deleted + this->modified + this->renamed != 0;
 }

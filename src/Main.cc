@@ -194,13 +194,17 @@ int main(int argc, char* argv[])
 
     VLOG(1) << opts;
 
-    if (opts->show_diff == 1) {
+    // call git diff only if there are unstaged changes
+    if (opts->show_diff == 1 && ri->Unstaged.hasChanged()) {
+        VLOG(2) << "Repo is dirty; running git diff for numstat";
         const std::string gitDiff = run("git diff --numstat");
         std::vector<std::string> diffLines = split(gitDiff, '\n');
         for (size_t i = 0; i < diffLines.size(); i++) {
             // VLOG(1) << diffLines[i];
             ri->parseGitDiff(diffLines[i]);
         }
+    } else {
+        VLOG(2) << "Repo is not dirty; git diff not called";
     }
 
     std::cout << opts->format << std::endl;
