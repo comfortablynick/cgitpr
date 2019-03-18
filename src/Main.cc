@@ -154,14 +154,14 @@ void processArgs(int argc, char** argv, Options* opts)
         }
     }
 }
-
+// TODO: check if in git repo
 int main(int argc, char* argv[])
 {
     /* LOGGER */
     el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
     el::Logger* console = el::Loggers::getLogger("default"); // needed for printf-style logging
     console->enabled(el::Level::Trace);
-    // el::Loggers::setLoggingLevel(el::Level::Trace);
+
     Options* opts = opts->getInstance(); // static singleton
     processArgs(argc, argv, opts);
 
@@ -188,16 +188,12 @@ int main(int argc, char* argv[])
         ri->parseGitStatus(statusLines[i]);
     }
 
-    VLOG(1) << ri;
-
     if (parseFmtStr(opts) == 1) return 1;
-
-    VLOG(1) << opts;
 
     // call git diff only if there are unstaged changes
     if (opts->show_diff == 1 && ri->Unstaged.hasChanged()) {
         VLOG(2) << "Repo is dirty; running git diff for numstat";
-        const std::string gitDiff = run("git diff --numstat");
+        const std::string gitDiff = run("git diff --shortstat");
         std::vector<std::string> diffLines = split(gitDiff, '\n');
         for (size_t i = 0; i < diffLines.size(); i++) {
             // VLOG(1) << diffLines[i];
@@ -206,6 +202,9 @@ int main(int argc, char* argv[])
     } else {
         VLOG(2) << "Repo is not dirty; git diff not called";
     }
+
+    VLOG(1) << ri;
+    VLOG(1) << opts;
 
     std::cout << opts->format << std::endl;
 

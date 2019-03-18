@@ -82,9 +82,9 @@ void Repo::parseGitStatus(const std::string& str)
 
 void Repo::parseGitDiff(const std::string& str)
 {
-    console->trace("%v", str);
     std::vector<std::string> words = split(str, ' ');
-
-    VLOG(1) << words[0];
-    for (auto word : words) console->info("%v", word);
+    for (size_t i = 0; i < words.size(); i++) {
+        if (words[i] == "insertions(+),") insertions = std::stoi(words[i - 1]);
+        if (words[i] == "deletions(-)") deletions = std::stoi(words[i - 1]);
+    }
 }
