@@ -11,13 +11,17 @@
 INITIALIZE_EASYLOGGINGPP
 #define ELPP_STL_LOGGING
 
-// globals
-static const std::string version = "0.0.1";
-
-// init singleton class pointers
+/**
+ * Globals and singleton classes
+ */
+static const char* version = "0.0.1";
 Options* Options::instance = nullptr;
 Repo* Repo::instance = nullptr;
 
+/**
+ * Parse tokenized format string (-f) and set Options
+ * based on user input.
+ */
 int parseFmtStr(Options* opts)
 {
     std::string& fmt = opts->format;
@@ -72,6 +76,9 @@ int parseFmtStr(Options* opts)
     return 0;
 }
 
+/**
+ * Output program help text to stderr.
+ */
 void printShortHelp(void)
 {
     std::cerr << rang::fgB::green << "cgitpr " << rang::style::reset << version
@@ -80,15 +87,23 @@ void printShortHelp(void)
               << rang::fgB::yellow << "\nUSAGE:\n"
               << rang::fgB::green << "  cgitpr [FLAGS] [OPTIONS]\n"
               << rang::fgB::yellow << "\nFLAGS:\n"
-              << rang::style::reset
-              << "  -h      Show this help message and exit\n"
-                 "  --help  Show all options from all packages\n"
+              << rang::style::reset << "  -h, --help     Show this help message and exit\n"
+              << "  -V, --version  Print version and exit\n"
+              << "  -d, --debug    Print debug messages to console\n"
               << rang::fgB::yellow << "\nOPTIONS:\n"
               << rang::style::reset
               << "  -v, --verbose <n>   Log verbosity [1-9]; omitting <n> is the same as --v=9\n"
-                 "  -d, --dir <dir>     Git directory (default: \".\")\n"
-                 "  -f, --format <fmt>  Tokenized format string for git status\n"
-              << "\nFormat string may contain:\n"
+                 "  -f, --format [fmt]  Tokenized format string for git status\n"
+                 "  --dir [dir]         Git directory (default is current directory)\n"
+              << std::endl;
+}
+
+/**
+ * Print extra help details to stderr if --help is called.
+ */
+void printHelpEpilog(void)
+{
+    std::cerr << "Format string may contain:\n"
                  "  %g  branch glyph ()\n"
                  "  %n  VC name\n"
                  "  %b  branch\n"
@@ -103,13 +118,17 @@ void printShortHelp(void)
               << std::endl;
 }
 
+/**
+ * Parse argv with getopt_long and update Options.
+ */
 void processArgs(int argc, char** argv, Options* opts)
 {
-    const char* const short_opts = ":d:v::f:d:h:V";
+    const char* const short_opts = ":dv::f:hV";
     const option long_opts[] = {
-        {"dir", required_argument, nullptr, 'd'},    {"verbose", optional_argument, nullptr, 'v'},
-        {"format", required_argument, nullptr, 'f'}, {"help", no_argument, nullptr, 'h'},
-        {"version", no_argument, nullptr, 'V'},      {nullptr, no_argument, nullptr, 0}};
+        {"dir", required_argument, nullptr, 2}, {"verbose", optional_argument, nullptr, 'v'},
+        {"debug", no_argument, nullptr, 'd'},   {"format", required_argument, nullptr, 'f'},
+        {"help", no_argument, nullptr, 1},      {"version", no_argument, nullptr, 'V'},
+        {nullptr, no_argument, nullptr, 0}};
 
     while (true) {
         const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
@@ -117,12 +136,13 @@ void processArgs(int argc, char** argv, Options* opts)
         if (-1 == opt) break;
 
         switch (opt) {
+        // Short and short/long opts
         case 'h':
             printShortHelp();
             exit(1);
             break;
         case 'd':
-            opts->dir = optarg;
+            opts->debug_print = true;
             break;
         case 'v':
             if (optarg != NULL) {
@@ -139,6 +159,15 @@ void processArgs(int argc, char** argv, Options* opts)
         case 'f':
             opts->format = std::string(optarg);
             break;
+        // Long-only opts (by number instead of char flag)
+        case 1:
+            printShortHelp();
+            printHelpEpilog();
+            exit(1);
+            break;
+        case 2:
+            opts->dir = std::string(optarg);
+            break;
         case '?':
             // TODO: does not print if not a char; figure out how to parse any values
             LOG(ERROR) << "Parsing error: unknown opt '" << (char)optopt << "'\n";
@@ -154,31 +183,50 @@ void processArgs(int argc, char** argv, Options* opts)
         }
     }
 }
-// TODO: check if in git repo
+
+/**
+ * CLI entry point; direct to other funcs based on args.
+ */
 int main(int argc, char* argv[])
 {
-    /* LOGGER */
+    // Logger setup
     el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
-    el::Logger* console = el::Loggers::getLogger("default"); // needed for printf-style logging
-    console->enabled(el::Level::Trace);
+    el::Logger* console = el::Loggers::getLogger("default");
+    console->enabled(el::Level::Warning); // This doesn't seem to work as expected
 
     Options* opts = opts->getInstance(); // static singleton
-    processArgs(argc, argv, opts);
+
+    // TODO: remove after testing
+    std::vector<std::string> arguments(argv, argv + argc);
+    if (arguments.size() == 1) arguments.push_back("-v");
+
+    char** args = new char*[arguments.size() + 1];
+    std::transform(arguments.begin(), arguments.end(), &args[0],
+                   [](std::string& s) -> char* { return s.data(); });
+
+    processArgs(arguments.size(), args, opts);
+
+    if (opts->debug_print) {
+        console->enabled(el::Level::Trace);
+        LOG(INFO) << "Trace log level enabled!";
+    }
 
     // log raw cli arguments
     if (VLOG_IS_ON(2)) {
-        for (size_t i = 0; i < argc; i++) {
-            VLOG(2) << "Arg " << i << ". " << argv[i];
+        VLOG(2) << "Command Line Arguments:";
+        VLOG(2) << "Arg count (argc): " << argc;
+        for (size_t i = 0; i < arguments.size(); i++) {
+            VLOG(2) << "Arg " << i << ": " << args[i];
         }
     }
 
+    // TODO: check if in git repo
     CHECK(opts->format != "");
 
-    Repo* ri = ri->getInstance(); // static singleton
+    Repo* ri = ri->getInstance();
     RepoArea* unstaged = new RepoArea();
     RepoArea* staged = new RepoArea();
 
-    opts->debug_print = true;
     ri->Unstaged = *unstaged;
     ri->Staged = *staged;
 
@@ -196,7 +244,6 @@ int main(int argc, char* argv[])
         const std::string gitDiff = run("git diff --shortstat");
         std::vector<std::string> diffLines = split(gitDiff, '\n');
         for (size_t i = 0; i < diffLines.size(); i++) {
-            // VLOG(1) << diffLines[i];
             ri->parseGitDiff(diffLines[i]);
         }
     } else {
@@ -210,6 +257,5 @@ int main(int argc, char* argv[])
 
     delete unstaged;
     delete staged;
-
     return 0;
 }

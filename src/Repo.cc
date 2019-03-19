@@ -29,8 +29,15 @@ std::ostream& operator<<(std::ostream& out, Repo* obj)
     return out;
 }
 
+
+/**
+ * Print self using << overload.
+ */
 void Repo::debug(void) { std::cerr << this; }
 
+/**
+ * Print to stringstream using << overload.
+ */
 std::string Repo::print(void)
 {
     std::stringstream ss;
@@ -38,6 +45,9 @@ std::string Repo::print(void)
     return ss.str();
 }
 
+/**
+ * Parse branch details from `git status` string.
+ */
 void Repo::parseBranch(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
@@ -56,6 +66,9 @@ void Repo::parseBranch(const std::string& str)
     }
 }
 
+/**
+ * Parse modified file details (Unstaged or Staged).
+ */
 void Repo::parseTrackedFile(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
@@ -63,6 +76,9 @@ void Repo::parseTrackedFile(const std::string& str)
     Unstaged.parseModified(words[1][1]);
 }
 
+/**
+ * Send `git status` lines to correct function to be parsed.
+ */
 void Repo::parseGitStatus(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
@@ -80,11 +96,14 @@ void Repo::parseGitStatus(const std::string& str)
     }
 }
 
+/**
+ * Parse `git diff --shortstat` to get inserted/deleted lines
+ */
 void Repo::parseGitDiff(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
     for (size_t i = 0; i < words.size(); i++) {
-        if (words[i] == "insertions(+),") insertions = std::stoi(words[i - 1]);
-        if (words[i] == "deletions(-)") deletions = std::stoi(words[i - 1]);
+        if (words[i].find('+') != std::string::npos) insertions = std::stoi(words[i - 1]);
+        if (words[i].find('-') != std::string::npos) deletions = std::stoi(words[i - 1]);
     }
 }
