@@ -5,7 +5,9 @@ rm -rf build
 mkdir build && cd build || exit 1
 
 # conan install
-conan install ..
+conan remote add --force zimmerk https://api.bintray.com/conan/zimmerk/conan
+conan install .. --build=missing
+conan build ..
 
 # build
 cmake ..
@@ -16,7 +18,7 @@ if [ -f compile_commands.json ]; then
     cd .. || exit 1
     if [ ! -e compile_commands.json ]; then
         echo "linking build/compile_commands.json to top dir..."
-        ln -s build/compile_commands.json
+        ln -s build/compile_commands.json ./
     else
         echo "compile_commands.json already linked to top of project"
     fi
