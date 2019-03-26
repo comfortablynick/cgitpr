@@ -8,6 +8,7 @@ class Options
     Options()
     {
         debug_print = false;
+        debug_quiet = false;
         show_ahead_behind = false;
         show_branch = false;
         show_branch_glyph = false;
@@ -29,9 +30,9 @@ class Options
         if (instance == 0) instance = new Options();
         return instance;
     }
-    bool debug_print, show_ahead_behind, show_branch, show_branch_glyph,
-        show_commit, show_diff, show_remote, show_stashed, show_staged_modified,
-        show_unstaged_modified, show_untracked, show_vcs;
+    bool debug_print, debug_quiet, show_ahead_behind, show_branch, show_branch_glyph, show_commit,
+        show_diff, show_remote, show_stashed, show_staged_modified, show_unstaged_modified,
+        show_untracked, show_vcs;
     std::string format, dir;
     friend std::ostream& operator<<(std::ostream& out, Options* obj);
     void debug(void);

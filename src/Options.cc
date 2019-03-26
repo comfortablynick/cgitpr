@@ -17,6 +17,7 @@ std::ostream& operator<<(std::ostream& out, Options* obj)
     out << "  Show untracked: " << obj->show_untracked << '\n';
     out << "  Show vcs: " << obj->show_vcs << '\n';
     out << "  Debug print: " << obj->debug_print << '\n';
+    out << "  Debug quiet: " << obj->debug_quiet << '\n';
     out << "  Format: " << obj->format << '\n';
     out << "  Dir: " << obj->dir << '\n';
     return out;
@@ -24,7 +25,7 @@ std::ostream& operator<<(std::ostream& out, Options* obj)
 
 void Options::debug()
 {
-    if (this->debug_print) {
+    if (this->debug_print && !this->debug_quiet) {
         std::cerr << this;
     }
 }

@@ -90,6 +90,7 @@ void printShortHelp(void)
               << rang::style::reset << "  -h, --help     Show this help message and exit\n"
               << "  -V, --version  Print version and exit\n"
               << "  -d, --debug    Print debug messages to console\n"
+              << "  -q, --quiet    Quiet debug output (overrides -v/-d)\n"
               << rang::fgB::yellow << "\nOPTIONS:\n"
               << rang::style::reset
               << "  -v, --verbose <n>   Log verbosity [1-9]; omitting <n> is the same as --v=9\n"
@@ -123,17 +124,17 @@ void printHelpEpilog(void)
  */
 void processArgs(int argc, char** argv, Options* opts)
 {
-    const char* const short_opts = ":dv::f:hV";
+    const char* const short_opts = ":dv::f:qhV";
     const option long_opts[] = {
         {"dir", required_argument, nullptr, 2}, {"verbose", optional_argument, nullptr, 'v'},
         {"debug", no_argument, nullptr, 'd'},   {"format", required_argument, nullptr, 'f'},
         {"help", no_argument, nullptr, 1},      {"version", no_argument, nullptr, 'V'},
-        {nullptr, no_argument, nullptr, 0}};
+        {"quiet", no_argument, nullptr, 'q'},   {nullptr, no_argument, nullptr, 0}};
 
     while (true) {
         const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
 
-        if (-1 == opt) break;
+        if (opt == -1) break;
 
         switch (opt) {
         // Short and short/long opts
@@ -158,6 +159,11 @@ void processArgs(int argc, char** argv, Options* opts)
             exit(1);
         case 'f':
             opts->format = std::string(optarg);
+            break;
+        case 'q':
+            opts->debug_quiet = true;
+            opts->debug_print = false;
+            el::Loggers::setVerboseLevel(0);
             break;
         // Long-only opts (by number instead of char flag)
         case 1:
