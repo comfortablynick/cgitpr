@@ -1,26 +1,34 @@
 // Generic utility functions
 #include "Utils.hpp"
 #include <cstdarg>
+#include <easylogging++.h>
 #include <iostream>
 #include <sstream>
 
-const std::string run(std::string cmd) {
+/* Run command and get text output (stdout or stderr) */
+const std::string run(std::string cmd)
+{
     std::string data;
     FILE* stream;
     const int max_buffer = 256;
     char buffer[max_buffer];
     cmd.append(" 2>&1");
+    VLOG(2) << "Cmd: `" << cmd << "'";
 
     stream = popen(cmd.c_str(), "r");
     if (stream) {
-        while (!feof(stream))
-            if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
+        while (fgets(buffer, max_buffer, stream) != nullptr) {
+            data.append(buffer);
+        }
+        if (ferror(stream)) LOG(ERROR) << "error getting stream for command: '" << cmd << "'";
         pclose(stream);
     }
     return data;
 }
 
-std::vector<std::string> split(const std::string& str, char delim = ' ') {
+/* Split string by delimiter */
+std::vector<std::string> split(const std::string& str, char delim = ' ')
+{
     std::vector<std::string> tokens;
     std::string token;
     std::istringstream tokenStream(str);
@@ -30,7 +38,8 @@ std::vector<std::string> split(const std::string& str, char delim = ' ') {
     return tokens;
 }
 
-const std::string vformat(const char* const zcFormat, ...) {
+const std::string vformat(const char* const zcFormat, ...)
+{
 
     // initialize use of the variable argument array
     va_list vaArgs;
@@ -73,13 +82,15 @@ enum class ansi_color_code : int
 };
 
 template <typename printable>
-std::string print_as_color(printable const& value, ansi_color_code color) {
+std::string print_as_color(printable const& value, ansi_color_code color)
+{
     std::stringstream sstr;
     sstr << "\033[1;" << static_cast<int>(color) << "m" << value << "\033[0m";
     return sstr.str();
 }
 template <ansi_color_code color, typename printable>
-std::string print_as_color(printable const& value) {
+std::string print_as_color(printable const& value)
+{
     std::stringstream sstr;
     sstr << "\033[1;" << static_cast<int>(color) << "m" << value << "\033[0m";
     return sstr.str();
