@@ -24,14 +24,11 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 
 set(SOURCE_FILES
         src/Main.cc
-        src/Options.cc
-        src/Options.hpp
+        src/Options.h
         src/Repo.cc
-        src/Repo.hpp
-        src/RepoArea.cc
-        src/RepoArea.hpp
+        src/Repo.h
         src/Utils.cc
-        src/Utils.hpp
+        src/Utils.h
 )
 
 add_executable(cgitpr ${SOURCE_FILES})

@@ -1,11 +1,55 @@
-#include "Repo.hpp"
-#include "Utils.hpp"
+#include "Repo.h"
+#include "Utils.h"
 #include <easylogging++.h>
 
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
+
+std::ostream& operator<<(std::ostream& out, RepoArea* obj)
+{
+    out << "  Added: " << obj->added << '\n';
+    out << "  Copied: " << obj->copied << '\n';
+    out << "  Deleted: " << obj->deleted << '\n';
+    out << "  Modified: " << obj->modified << '\n';
+    out << "  Renamed: " << obj->renamed << '\n';
+    out << "  Dirty: " << obj->hasChanged() << '\n';
+    return out;
+}
+
+void RepoArea::debug() { std::cerr << this; }
+
+std::string RepoArea::print()
+{
+    std::stringstream ss;
+    ss << this;
+    return ss.str();
+}
+
+void RepoArea::parseModified(const char& ltr)
+{
+    if (ltr == 'M') {
+        modified++;
+    }
+    if (ltr == 'A') {
+        added++;
+    }
+    if (ltr == 'D') {
+        deleted++;
+    }
+    if (ltr == 'R') {
+        renamed++;
+    }
+    if (ltr == 'C') {
+        copied++;
+    }
+}
+
+bool RepoArea::hasChanged()
+{
+    return this->added + this->copied + this->deleted + this->modified + this->renamed != 0;
+}
 
 el::Logger* console = el::Loggers::getLogger("");
 std::ostream& operator<<(std::ostream& out, Repo* obj)
@@ -106,4 +150,10 @@ void Repo::parseGitDiff(const std::string& str)
         if (words[i].find('+') != std::string::npos) insertions = std::stoi(words[i - 1]);
         if (words[i].find('-') != std::string::npos) deletions = std::stoi(words[i - 1]);
     }
+}
+
+std::string Repo::formatAheadBehind(bool indicatorsOnly)
+{
+    std::string out = "";
+    return out;
 }

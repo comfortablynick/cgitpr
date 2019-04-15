@@ -1,6 +1,6 @@
-#include "Options.hpp"
-#include "Repo.hpp"
-#include "Utils.hpp"
+#include "Options.h"
+#include "Repo.h"
+#include "Utils.h"
 #include "easylogging++.h"
 #include "rang.hpp"
 #include <getopt.h>
@@ -11,12 +11,79 @@
 INITIALIZE_EASYLOGGINGPP
 #define ELPP_STL_LOGGING
 
-/**
- * Globals and singleton classes
- */
-static const char* version = "0.0.1";
+// Globals and singleton classes
+static const char* VERSION = "0.0.1";
+static const bool DEBUG_MODE = true;
 Options* Options::instance = nullptr;
 Repo* Repo::instance = nullptr;
+
+std::string printOutput(Options* opts, Repo* ri)
+{
+    std::stringstream ss;
+    std::string& fmt = opts->format;
+
+    for (auto i = 0; i < fmt.length(); i++) {
+        if (fmt[i] == '%') {
+            i++;
+            switch (fmt[i]) {
+            case '\0':
+                break;
+            case 'a':
+                // ahead/behind
+                break;
+            case 'b':
+                // branch name
+                ss << ri->branch;
+                break;
+            case 'c':
+                // commit hash
+                ss << ri->commit;
+                break;
+            case 'd':
+                // diff stats
+                ss << "+" << ri->insertions << "/-" << ri->deletions;
+                break;
+            case 'g':
+                // branch glyph
+                ss << ri->BRANCH_GLYPH;
+                break;
+            case 'm':
+                // unstaged modified
+                ss << ri->MODIFIED_GLYPH;
+                break;
+            case 'n':
+                // vcs name
+                ss << "git";
+                break;
+            case 'r':
+                // remote
+                ss << ri->remote;
+                break;
+            case 's':
+                // staged modified
+                ss << ri->MODIFIED_GLYPH;
+                break;
+            case 't':
+                // stashed
+                ss << ri->STASH_GLYPH;
+                break;
+            case 'u':
+                // untracked
+                ss << ri->UNTRACKED_GLYPH;
+                break;
+            case '%':
+                ss << '%';
+                break;
+            default:
+                std::cerr << "error: token '" << fmt[i] << "' not recognized\n";
+                exit(1);
+            }
+        } else {
+            ss << fmt[i];
+        }
+    }
+    return ss.str();
+}
 
 /**
  * Parse tokenized format string (-f) and set Options
@@ -81,7 +148,7 @@ int parseFmtStr(Options* opts)
  */
 void printShortHelp(void)
 {
-    std::cerr << rang::fgB::green << "cgitpr " << rang::style::reset << version
+    std::cerr << rang::fgB::green << "cgitpr " << rang::style::reset << VERSION
               << "\ngit repo status for your prompt, written in C++.\n"
               << "Nick Murphy <comfortablynick@gmail.com>\n"
               << rang::fgB::yellow << "\nUSAGE:\n"
@@ -119,9 +186,11 @@ void printHelpEpilog(void)
               << std::endl;
 }
 
-/**
- * Parse argv with getopt_long and update Options.
- */
+// Parse argv with getopt_long and update Options.
+//
+// @param argc Argument count
+// @param argv Command line arguments
+// @param opts Options object
 void processArgs(int argc, char** argv, Options* opts)
 {
     const char* const short_opts = ":dv::f:qhV";
@@ -154,7 +223,7 @@ void processArgs(int argc, char** argv, Options* opts)
             LOG(INFO) << "processArgs: Verbosity set to: " << el::Loggers::verboseLevel();
             break;
         case 'V':
-            std::cerr << rang::fgB::green << argv[0] << rang::style::reset << " " << version
+            std::cerr << rang::fgB::green << argv[0] << rang::style::reset << " " << VERSION
                       << "\n";
             exit(1);
         case 'f':
@@ -190,18 +259,22 @@ void processArgs(int argc, char** argv, Options* opts)
     }
 }
 
-/**
- * CLI entry point; direct to other funcs based on args.
- */
+// CLI entry point; direct to other funcs based on args.
 int main(int argc, char* argv[])
 {
-    // Logger setup
+    Options* opts = opts->getInstance(); // singleton options object
+
+    // Logger init
     el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
     el::Logger* console = el::Loggers::getLogger("default");
     console->enabled(el::Level::Warning); // This doesn't seem to work as expected
 
-    Options* opts = opts->getInstance(); // static singleton
+    if (opts->debug_print) {
+        console->enabled(el::Level::Trace);
+        LOG(INFO) << "Trace log level enabled!";
+    }
 
+    // Construct test argv + argc
     // TODO: remove after testing
     std::vector<std::string> arguments(argv, argv + argc);
     if (arguments.size() == 1) arguments.push_back("-v");
@@ -209,13 +282,6 @@ int main(int argc, char* argv[])
     char** args = new char*[arguments.size() + 1];
     std::transform(arguments.begin(), arguments.end(), &args[0],
                    [](std::string& s) -> char* { return s.data(); });
-
-    processArgs(arguments.size(), args, opts);
-
-    if (opts->debug_print) {
-        console->enabled(el::Level::Trace);
-        LOG(INFO) << "Trace log level enabled!";
-    }
 
     // log raw cli arguments
     if (VLOG_IS_ON(2)) {
@@ -225,6 +291,7 @@ int main(int argc, char* argv[])
             VLOG(2) << "Arg " << i << ": " << args[i];
         }
     }
+    delete[] args;
 
     // TODO: check if in git repo
     CHECK(opts->format != "");
@@ -259,7 +326,7 @@ int main(int argc, char* argv[])
     VLOG(1) << ri;
     VLOG(1) << opts;
 
-    std::cout << opts->format << std::endl;
+    std::cout << printOutput(opts, ri) << std::endl;
 
     delete unstaged;
     delete staged;

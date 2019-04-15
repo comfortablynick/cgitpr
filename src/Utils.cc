@@ -1,5 +1,5 @@
 // Generic utility functions
-#include "Utils.hpp"
+#include "Utils.h"
 #include <cstdarg>
 #include <easylogging++.h>
 #include <iostream>
