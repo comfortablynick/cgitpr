@@ -21,6 +21,7 @@ std::string printOutput(Options* opts, Repo* ri)
 {
     std::stringstream ss;
     std::string& fmt = opts->format;
+    bool ind = opts->indicators_only;
 
     for (auto i = 0; i < fmt.length(); i++) {
         if (fmt[i] == '%') {
@@ -29,47 +30,37 @@ std::string printOutput(Options* opts, Repo* ri)
             case '\0':
                 break;
             case 'a':
-                // ahead/behind
+                ss << ri->formatAheadBehind(ind);
                 break;
             case 'b':
-                // branch name
-                ss << ri->branch;
+                ss << ri->formatBranch();
                 break;
             case 'c':
-                // commit hash
-                ss << ri->commit;
+                ss << ri->formatCommit(7);
                 break;
             case 'd':
-                // diff stats
-                ss << "+" << ri->insertions << "/-" << ri->deletions;
+                ss << ri->formatDiff();
                 break;
             case 'g':
-                // branch glyph
                 ss << ri->BRANCH_GLYPH;
                 break;
             case 'm':
-                // unstaged modified
-                ss << ri->MODIFIED_GLYPH;
+                ss << ri->Unstaged.formatModified(ind);
                 break;
             case 'n':
-                // vcs name
                 ss << "git";
                 break;
             case 'r':
-                // remote
                 ss << ri->remote;
                 break;
             case 's':
-                // staged modified
-                ss << ri->MODIFIED_GLYPH;
+                ss << ri->Staged.formatModified(ind);
                 break;
             case 't':
-                // stashed
-                ss << ri->STASH_GLYPH;
+                ss << ri->formatStashed(ind);
                 break;
             case 'u':
-                // untracked
-                ss << ri->UNTRACKED_GLYPH;
+                ss << ri->formatUntracked(ind);
                 break;
             case '%':
                 ss << '%';
@@ -85,10 +76,10 @@ std::string printOutput(Options* opts, Repo* ri)
     return ss.str();
 }
 
-/**
- * Parse tokenized format string (-f) and set Options
- * based on user input.
- */
+// Parse tokenized format string (-f) and set Options
+// based on user input.
+//
+// @param opts Options object
 int parseFmtStr(Options* opts)
 {
     std::string& fmt = opts->format;
@@ -154,15 +145,17 @@ void printShortHelp(void)
               << rang::fgB::yellow << "\nUSAGE:\n"
               << rang::fgB::green << "  cgitpr [FLAGS] [OPTIONS]\n"
               << rang::fgB::yellow << "\nFLAGS:\n"
-              << rang::style::reset << "  -h, --help     Show this help message and exit\n"
-              << "  -V, --version  Print version and exit\n"
-              << "  -d, --debug    Print debug messages to console\n"
-              << "  -q, --quiet    Quiet debug output (overrides -v/-d)\n"
+              << rang::style::reset
+              << "  -h, --help             Show short or long help message and exit\n"
+              << "  -V, --version          Print version and exit\n"
+              << "  -d, --debug            Print debug messages to console\n"
+              << "  -q, --quiet            Quiet debug output (overrides -v/-d)\n"
+              << "  -i, --indicators-only  Show symbols only in output (no counts)\n"
               << rang::fgB::yellow << "\nOPTIONS:\n"
               << rang::style::reset
-              << "  -v, --verbose <n>   Log verbosity [1-9]; omitting <n> is the same as --v=9\n"
-                 "  -f, --format [fmt]  Tokenized format string for git status\n"
-                 "  --dir [dir]         Git directory (default is current directory)\n"
+              << "  -v, --verbose <n>      Log verbosity [1-9]; (default: 9)\n"
+                 "  -f, --format FORMAT    Tokenized format string for git status\n"
+                 "  --dir DIRECTORY        Git directory, if different from current"
               << std::endl;
 }
 
@@ -171,8 +164,9 @@ void printShortHelp(void)
  */
 void printHelpEpilog(void)
 {
-    std::cerr << "Format string may contain:\n"
-                 "  %g  branch glyph ()\n"
+    std::cerr << rang::fgB::yellow << "\nFormat string may contain:\n"
+              << rang::style::reset
+              << "  %g  branch glyph ()\n"
                  "  %n  VC name\n"
                  "  %b  branch\n"
                  "  %r  remote\n"
@@ -182,7 +176,7 @@ void printHelpEpilog(void)
                  "  %s  staged changes (modified/added/removed)\n"
                  "  %u  untracked files\n"
                  "  %d  diff lines, ex: \"+20/-10\"\n"
-                 "  %t  stashed files indicator\n"
+                 "  %t  stashed files indicator"
               << std::endl;
 }
 
@@ -193,12 +187,13 @@ void printHelpEpilog(void)
 // @param opts Options object
 void processArgs(int argc, char** argv, Options* opts)
 {
-    const char* const short_opts = ":dv::f:qhV";
+    const char* const short_opts = ":dv::f:qhVi";
     const option long_opts[] = {
         {"dir", required_argument, nullptr, 2}, {"verbose", optional_argument, nullptr, 'v'},
         {"debug", no_argument, nullptr, 'd'},   {"format", required_argument, nullptr, 'f'},
         {"help", no_argument, nullptr, 1},      {"version", no_argument, nullptr, 'V'},
-        {"quiet", no_argument, nullptr, 'q'},   {nullptr, no_argument, nullptr, 0}};
+        {"quiet", no_argument, nullptr, 'q'},   {"indicators-only", no_argument, nullptr, 'i'},
+        {nullptr, no_argument, nullptr, 0}};
 
     while (true) {
         const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
@@ -226,6 +221,9 @@ void processArgs(int argc, char** argv, Options* opts)
             std::cerr << rang::fgB::green << argv[0] << rang::style::reset << " " << VERSION
                       << "\n";
             exit(1);
+        case 'i':
+            opts->indicators_only = true;
+            break;
         case 'f':
             opts->format = std::string(optarg);
             break;
@@ -274,14 +272,20 @@ int main(int argc, char* argv[])
         LOG(INFO) << "Trace log level enabled!";
     }
 
-    // Construct test argv + argc
-    // TODO: remove after testing
+    // TODO: remove test argv+argc after testing
     std::vector<std::string> arguments(argv, argv + argc);
     if (arguments.size() == 1) arguments.push_back("-v");
 
     char** args = new char*[arguments.size() + 1];
     std::transform(arguments.begin(), arguments.end(), &args[0],
                    [](std::string& s) -> char* { return s.data(); });
+
+    processArgs(arguments.size(), args, opts);
+
+    if (opts->debug_print) {
+        console->enabled(el::Level::Trace);
+        LOG(INFO) << "Trace log level enabled!";
+    }
 
     // log raw cli arguments
     if (VLOG_IS_ON(2)) {

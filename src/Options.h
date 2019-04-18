@@ -21,7 +21,7 @@ class Options
         show_unstaged_modified = false;
         show_untracked = false;
         show_vcs = false;
-        format = "[%n:%b] %d";
+        format = "%g %b@%c %a %m %d %s %u %t";
         dir = ".";
     }
 
@@ -31,9 +31,9 @@ class Options
         if (instance == 0) instance = new Options();
         return instance;
     }
-    bool debug_print, debug_quiet, show_ahead_behind, show_branch, show_branch_glyph, show_commit,
-        show_diff, show_remote, show_stashed, show_staged_modified, show_unstaged_modified,
-        show_untracked, show_vcs;
+    bool debug_print, debug_quiet, indicators_only, show_ahead_behind, show_branch,
+        show_branch_glyph, show_commit, show_diff, show_remote, show_stashed, show_staged_modified,
+        show_unstaged_modified, show_untracked, show_vcs;
     std::string format, dir;
     friend std::ostream& operator<<(std::ostream& out, Options* obj)
     {
@@ -51,6 +51,7 @@ class Options
         out << "  Show vcs: " << obj->show_vcs << '\n';
         out << "  Debug print: " << obj->debug_print << '\n';
         out << "  Debug quiet: " << obj->debug_quiet << '\n';
+        out << "  Indicators only: " << obj->indicators_only << '\n';
         out << "  Format: " << obj->format << '\n';
         out << "  Dir: " << obj->dir << '\n';
         return out;

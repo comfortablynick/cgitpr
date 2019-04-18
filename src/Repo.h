@@ -7,6 +7,7 @@
 class RepoArea
 {
   public:
+    const char* MODIFIED_GLYPH = "Δ";
     int modified, added, deleted, renamed, copied;
     RepoArea()
     {
@@ -16,11 +17,12 @@ class RepoArea
         renamed = 0;
         copied = 0;
     }
-    friend std::ostream& operator<<(std::ostream& out, RepoArea* obj);
+    friend std::ostream& operator<<(std::ostream&, RepoArea*);
     void debug(void);
     std::string print(void);
-    void parseModified(const char& ltr);
+    void parseModified(const char&);
     bool hasChanged(void);
+    std::string formatModified(bool);
 };
 
 class Repo
@@ -42,7 +44,6 @@ class Repo
 
   public:
     const char* BRANCH_GLYPH = "";
-    const char* MODIFIED_GLYPH = "Δ";
     const char* UNTRACKED_GLYPH = "…";
     const char* AHEAD_GLYPH = "↑";
     const char* BEHIND_GLYPH = "↓";
@@ -55,14 +56,19 @@ class Repo
     std::string gitDir, branch, commit, remote, upstream;
     int stashed, ahead, behind, untracked, unmerged, insertions, deletions;
     RepoArea Unstaged, Staged;
-    friend std::ostream& operator<<(std::ostream& out, Repo* obj);
+    friend std::ostream& operator<<(std::ostream&, Repo*);
     void debug(void);
     std::string print(void);
-    void parseBranch(const std::string& str);
-    void parseTrackedFile(const std::string& str);
-    void parseGitStatus(const std::string& str);
-    void parseGitDiff(const std::string& str);
-    std::string formatAheadBehind(bool indicatorsOnly);
+    void parseBranch(const std::string&);
+    void parseTrackedFile(const std::string&);
+    void parseGitStatus(const std::string&);
+    void parseGitDiff(const std::string&);
+    std::string formatAheadBehind(bool);
+    std::string formatBranch(void);
+    std::string formatCommit(size_t);
+    std::string formatDiff(void);
+    std::string formatStashed(bool);
+    std::string formatUntracked(bool);
 };
 
 #endif // REPO_H
