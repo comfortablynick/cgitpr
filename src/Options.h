@@ -22,6 +22,8 @@ class Options
         show_untracked = false;
         show_vcs = false;
         format = "%g %b@%c %a %m %d %s %u %t";
+        no_color = false;
+        simple_mode = false;
         dir = ".";
     }
 
@@ -33,7 +35,7 @@ class Options
     }
     bool debug_print, debug_quiet, indicators_only, show_ahead_behind, show_branch,
         show_branch_glyph, show_commit, show_diff, show_remote, show_stashed, show_staged_modified,
-        show_unstaged_modified, show_untracked, show_vcs;
+        show_unstaged_modified, show_untracked, show_vcs, no_color, simple_mode;
     std::string format, dir;
     friend std::ostream& operator<<(std::ostream& out, Options* obj)
     {
@@ -51,13 +53,15 @@ class Options
         out << "  Show vcs: " << obj->show_vcs << '\n';
         out << "  Debug print: " << obj->debug_print << '\n';
         out << "  Debug quiet: " << obj->debug_quiet << '\n';
+        out << "  No color: " << obj->no_color << '\n';
+        out << "  Simple mode: " << obj->simple_mode << '\n';
         out << "  Indicators only: " << obj->indicators_only << '\n';
         out << "  Format: " << obj->format << '\n';
         out << "  Dir: " << obj->dir << '\n';
         return out;
     }
 
-    inline const void debug()
+    inline void debug()
     {
         if (this->debug_print && !this->debug_quiet) {
             std::cerr << this;

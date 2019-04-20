@@ -11,6 +11,7 @@ SortIncludes: true
 AllowShortFunctionsOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
+NamespaceIndentation: All
 BreakBeforeBraces: Custom
 BraceWrapping:
     AfterClass: true

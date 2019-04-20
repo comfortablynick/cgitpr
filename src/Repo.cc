@@ -1,6 +1,7 @@
 #include "Repo.h"
 #include "Utils.h"
 #include <easylogging++.h>
+#include <rang.hpp>
 
 #include <iostream>
 #include <sstream>
@@ -179,13 +180,19 @@ std::string Repo::formatAheadBehind(bool indicators_only)
 }
 
 // Format output of branch
-std::string Repo::formatBranch() { return this->branch; }
+std::string Repo::formatBranch()
+{
+    std::ostringstream ss;
+    ss << Ansi::setFg(Ansi::Fg::cyan) << this->branch << Ansi::setFg(Ansi::Fg::reset);
+    return ss.str();
+}
 
 // Format commit hash
 // @param string_len Length of commit hash representation
 std::string Repo::formatCommit(size_t str_len) { return this->commit.substr(0, str_len); }
 
 // Format `diff numstat` details
+// untracked
 std::string Repo::formatDiff()
 {
     std::stringstream ss;

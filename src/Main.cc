@@ -23,7 +23,7 @@ std::string printOutput(Options* opts, Repo* ri)
     std::string& fmt = opts->format;
     bool ind = opts->indicators_only;
 
-    for (auto i = 0; i < fmt.length(); i++) {
+    for (size_t i = 0; i < fmt.length(); i++) {
         if (fmt[i] == '%') {
             i++;
             switch (fmt[i]) {
@@ -84,7 +84,7 @@ int parseFmtStr(Options* opts)
 {
     std::string& fmt = opts->format;
 
-    for (std::string::size_type i = 0; i < fmt.length(); i++) {
+    for (size_t i = 0; i < fmt.length(); i++) {
         if (fmt[i] == '%') {
             i++;
             switch (fmt[i]) {
@@ -139,20 +139,22 @@ int parseFmtStr(Options* opts)
  */
 void printShortHelp(void)
 {
-    std::cerr << rang::fgB::green << "cgitpr " << rang::style::reset << VERSION
+    std::cerr << Ansi::fg::green << "cgitpr " << Ansi::reset << VERSION
               << "\ngit repo status for your prompt, written in C++.\n"
               << "Nick Murphy <comfortablynick@gmail.com>\n"
-              << rang::fgB::yellow << "\nUSAGE:\n"
-              << rang::fgB::green << "  cgitpr [FLAGS] [OPTIONS]\n"
-              << rang::fgB::yellow << "\nFLAGS:\n"
-              << rang::style::reset
+              << Ansi::fgB::yellow << "\nUSAGE:\n"
+              << Ansi::fg::green << "  cgitpr [FLAGS] [OPTIONS]\n"
+              << Ansi::fgB::yellow << "\nFLAGS:\n"
+              << Ansi::reset
               << "  -h, --help             Show short or long help message and exit\n"
               << "  -V, --version          Print version and exit\n"
               << "  -d, --debug            Print debug messages to console\n"
+              << "  -s, --simple           Simple output, similar to default bash git prompt\n"
+              << "  -n, --no-color         Disable color in output\n"
               << "  -q, --quiet            Quiet debug output (overrides -v/-d)\n"
               << "  -i, --indicators-only  Show symbols only in output (no counts)\n"
-              << rang::fgB::yellow << "\nOPTIONS:\n"
-              << rang::style::reset
+              << Ansi::fgB::yellow << "\nOPTIONS:\n"
+              << Ansi::reset
               << "  -v, --verbose <n>      Log verbosity [1-9]; (default: 9)\n"
                  "  -f, --format FORMAT    Tokenized format string for git status\n"
                  "  --dir DIRECTORY        Git directory, if different from current"
@@ -164,8 +166,8 @@ void printShortHelp(void)
  */
 void printHelpEpilog(void)
 {
-    std::cerr << rang::fgB::yellow << "\nFormat string may contain:\n"
-              << rang::style::reset
+    std::cerr << Ansi::fgB::yellow << "\nFormat string may contain:\n"
+              << Ansi::reset
               << "  %g  branch glyph ()\n"
                  "  %n  VC name\n"
                  "  %b  branch\n"
@@ -187,19 +189,18 @@ void printHelpEpilog(void)
 // @param opts Options object
 void processArgs(int argc, char** argv, Options* opts)
 {
-    const char* const short_opts = ":dv::f:qhVi";
+    const char* const short_opts = ":dv::f:qhVisn";
     const option long_opts[] = {
-        {"dir", required_argument, nullptr, 2}, {"verbose", optional_argument, nullptr, 'v'},
-        {"debug", no_argument, nullptr, 'd'},   {"format", required_argument, nullptr, 'f'},
-        {"help", no_argument, nullptr, 1},      {"version", no_argument, nullptr, 'V'},
-        {"quiet", no_argument, nullptr, 'q'},   {"indicators-only", no_argument, nullptr, 'i'},
+        {"dir", required_argument, nullptr, 2},  {"verbose", optional_argument, nullptr, 'v'},
+        {"debug", no_argument, nullptr, 'd'},    {"format", required_argument, nullptr, 'f'},
+        {"help", no_argument, nullptr, 1},       {"version", no_argument, nullptr, 'V'},
+        {"quiet", no_argument, nullptr, 'q'},    {"indicators-only", no_argument, nullptr, 'i'},
+        {"no-color", no_argument, nullptr, 'n'}, {"simple", no_argument, nullptr, 's'},
         {nullptr, no_argument, nullptr, 0}};
 
     while (true) {
         const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
-
         if (opt == -1) break;
-
         switch (opt) {
         // Short and short/long opts
         case 'h':
@@ -218,11 +219,17 @@ void processArgs(int argc, char** argv, Options* opts)
             LOG(INFO) << "processArgs: Verbosity set to: " << el::Loggers::verboseLevel();
             break;
         case 'V':
-            std::cerr << rang::fgB::green << argv[0] << rang::style::reset << " " << VERSION
-                      << "\n";
+            std::cerr << Ansi::fg::green << argv[0] << Ansi::reset << " " << VERSION << "\n";
             exit(1);
         case 'i':
             opts->indicators_only = true;
+            break;
+        case 'n':
+            opts->no_color = true;
+            setenv("TERM", "dumb", 1);
+            break;
+        case 's':
+            opts->simple_mode = true;
             break;
         case 'f':
             opts->format = std::string(optarg);

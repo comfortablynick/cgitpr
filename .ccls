@@ -1,4 +1,7 @@
 /* clang */
+-Wall
+-Wextra
+%cpp -pedantic
 %cpp -std=c++17
 %h -x
 %h c++-header
