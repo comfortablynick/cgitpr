@@ -8,7 +8,7 @@ class RepoArea
 {
   public:
     const char* MODIFIED_GLYPH = "Δ";
-    int modified, added, deleted, renamed, copied;
+    unsigned int modified, added, deleted, renamed, copied;
     RepoArea()
     {
         modified = 0;
@@ -54,7 +54,7 @@ class Repo
         return instance;
     }
     std::string gitDir, branch, commit, remote, upstream;
-    int stashed, ahead, behind, untracked, unmerged, insertions, deletions;
+    unsigned int stashed, ahead, behind, untracked, unmerged, insertions, deletions;
     RepoArea Unstaged, Staged;
     friend std::ostream& operator<<(std::ostream&, Repo*);
     void debug(void);

@@ -2,7 +2,6 @@
 #include "Repo.h"
 #include "Utils.h"
 #include "easylogging++.h"
-#include "rang.hpp"
 #include <getopt.h>
 #include <iostream>
 #include <string>
@@ -16,6 +15,36 @@ static const char* VERSION = "0.0.1";
 static const bool DEBUG_MODE = true;
 Options* Options::instance = nullptr;
 Repo* Repo::instance = nullptr;
+
+std::string simplePrompt()
+{
+    std::ostringstream ss;
+    std::string_view branch;
+    bool dirty = false;
+    const std::string git_status = run("git status --porcelain --branch");
+    VLOG(2) << "Git status output: " << git_status;
+
+    for (auto line : splitSV(git_status, "\n")) {
+        auto words = splitSV(line, " ");
+        for (size_t i = 0; i < words.size(); i++) {
+            VLOG(3) << "Word: " << words[i] << "\n";
+            if (words[i] == "##") {
+                i++;
+                branch = splitSV(words[i], "...")[0];
+                break;
+            }
+            if (words[i] != "") {
+                dirty = true;
+                break;
+            }
+            // TODO: parse ahead/behind to give in simple status
+        }
+    }
+    ss << Ansi::setFg(Color::cyan) << "(" << branch << ")";
+    if (dirty) ss << Ansi::setFg(Color::red) << "*";
+    ss << Ansi::reset();
+    return ss.str();
+}
 
 std::string printOutput(Options* opts, Repo* ri)
 {
@@ -139,13 +168,13 @@ int parseFmtStr(Options* opts)
  */
 void printShortHelp(void)
 {
-    std::cerr << Ansi::fg::green << "cgitpr " << Ansi::reset << VERSION
+    std::cerr << Ansi::setFg(Color::green) << "cgitpr " << Ansi::reset() << VERSION
               << "\ngit repo status for your prompt, written in C++.\n"
               << "Nick Murphy <comfortablynick@gmail.com>\n"
-              << Ansi::fgB::yellow << "\nUSAGE:\n"
-              << Ansi::fg::green << "  cgitpr [FLAGS] [OPTIONS]\n"
-              << Ansi::fgB::yellow << "\nFLAGS:\n"
-              << Ansi::reset
+              << Ansi::setFg(Color::bryellow) << "\nUSAGE:\n"
+              << Ansi::setFg(Color::green) << "  cgitpr [FLAGS] [OPTIONS]\n"
+              << Ansi::setFg(Color::bryellow) << "\nFLAGS:\n"
+              << Ansi::reset()
               << "  -h, --help             Show short or long help message and exit\n"
               << "  -V, --version          Print version and exit\n"
               << "  -d, --debug            Print debug messages to console\n"
@@ -153,8 +182,8 @@ void printShortHelp(void)
               << "  -n, --no-color         Disable color in output\n"
               << "  -q, --quiet            Quiet debug output (overrides -v/-d)\n"
               << "  -i, --indicators-only  Show symbols only in output (no counts)\n"
-              << Ansi::fgB::yellow << "\nOPTIONS:\n"
-              << Ansi::reset
+              << Ansi::setFg(Color::bryellow) << "\nOPTIONS:\n"
+              << Ansi::reset()
               << "  -v, --verbose <n>      Log verbosity [1-9]; (default: 9)\n"
                  "  -f, --format FORMAT    Tokenized format string for git status\n"
                  "  --dir DIRECTORY        Git directory, if different from current"
@@ -166,8 +195,8 @@ void printShortHelp(void)
  */
 void printHelpEpilog(void)
 {
-    std::cerr << Ansi::fgB::yellow << "\nFormat string may contain:\n"
-              << Ansi::reset
+    std::cerr << Ansi::setFg(Color::bryellow) << "\nFormat string may contain:\n"
+              << Ansi::reset()
               << "  %g  branch glyph ()\n"
                  "  %n  VC name\n"
                  "  %b  branch\n"
@@ -219,7 +248,8 @@ void processArgs(int argc, char** argv, Options* opts)
             LOG(INFO) << "processArgs: Verbosity set to: " << el::Loggers::verboseLevel();
             break;
         case 'V':
-            std::cerr << Ansi::fg::green << argv[0] << Ansi::reset << " " << VERSION << "\n";
+            std::cerr << Ansi::setBg(Color::green) << argv[0] << Ansi::reset() << " " << VERSION
+                      << "\n";
             exit(1);
         case 'i':
             opts->indicators_only = true;
@@ -231,7 +261,6 @@ void processArgs(int argc, char** argv, Options* opts)
         case 's':
             opts->simple_mode = true;
             break;
-        case 'f':
             opts->format = std::string(optarg);
             break;
         case 'q':
@@ -281,7 +310,7 @@ int main(int argc, char* argv[])
 
     // TODO: remove test argv+argc after testing
     std::vector<std::string> arguments(argv, argv + argc);
-    if (arguments.size() == 1) arguments.push_back("-v");
+    // if (arguments.size() == 1) arguments.push_back("-v");
 
     char** args = new char*[arguments.size() + 1];
     std::transform(arguments.begin(), arguments.end(), &args[0],
@@ -306,6 +335,11 @@ int main(int argc, char* argv[])
 
     // TODO: check if in git repo
     CHECK(opts->format != "");
+
+    if (opts->simple_mode) {
+        std::cout << simplePrompt() << std::endl;
+        return 0;
+    }
 
     Repo* ri = ri->getInstance();
     RepoArea* unstaged = new RepoArea();

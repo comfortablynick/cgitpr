@@ -1,7 +1,6 @@
 #include "Repo.h"
 #include "Utils.h"
 #include <easylogging++.h>
-#include <rang.hpp>
 
 #include <iostream>
 #include <sstream>
@@ -79,10 +78,12 @@ std::string RepoArea::formatModified(bool indicators_only)
 {
     std::stringstream ss;
     if (this->hasChanged()) {
+        ss << Ansi::setFg(Color::red);
         ss << this->MODIFIED_GLYPH;
         if (!indicators_only) {
             ss << this->modified;
         }
+        ss << Ansi::reset();
     }
     return ss.str();
 }
@@ -183,13 +184,21 @@ std::string Repo::formatAheadBehind(bool indicators_only)
 std::string Repo::formatBranch()
 {
     std::ostringstream ss;
-    ss << Ansi::setFg(Ansi::Fg::cyan) << this->branch << Ansi::setFg(Ansi::Fg::reset);
+    ss << Ansi::setFg(Color::blue) << this->branch << Ansi::reset();
     return ss.str();
 }
 
 // Format commit hash
 // @param string_len Length of commit hash representation
-std::string Repo::formatCommit(size_t str_len) { return this->commit.substr(0, str_len); }
+std::string Repo::formatCommit(size_t str_len)
+{
+    std::stringstream ss;
+    ss << Ansi::setBg(Color::green);
+    ss << Ansi::setFg(Color::black);
+    ss << this->commit.substr(0, str_len);
+    ss << Ansi::reset();
+    return ss.str();
+}
 
 // Format `diff numstat` details
 // untracked

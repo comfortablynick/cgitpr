@@ -1,5 +1,4 @@
 [requires]
-rang/3.1.0@rang/stable
 easyloggingpp/9.96.5@zimmerk/stable
 
 [generators]

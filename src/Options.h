@@ -70,7 +70,7 @@ class Options
 
     inline const std::string print()
     {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << this;
         return ss.str();
     }
