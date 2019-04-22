@@ -1,8 +1,8 @@
 /** Generic utility functions */
 #include "Utils.h"
 #include <easylogging++.h>
-#include <iostream>
-#include <sstream>
+// #include <iostream>
+// #include <sstream>
 
 
 // Run command and get text output (stdout or stderr)
@@ -45,7 +45,7 @@ std::vector<std::string> split(const std::string& str, char delim = ' ')
 // Split string view by one or more delimiters
 // @param str String view to split
 // @param delims Delimiter(s)
-std::vector<std::string_view> splitSV(std::string_view str, std::string_view delims = " ")
+std::vector<std::string_view> split(const std::string_view str, std::string_view delims = " ")
 {
     std::vector<std::string_view> output;
     for (auto first = str.data(), second = str.data(), last = first + str.size();

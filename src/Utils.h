@@ -1,13 +1,55 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <iomanip>
+#include <iostream>
 #include <sstream>
-#include <string>
 #include <vector>
+
+template <typename... Args>
+std::string fmt(const std::string& format, Args... args)
+{
+    size_t size = 1 + std::snprintf(nullptr, 0, format.c_str(), args...);
+    std::unique_ptr<char[]> buf(new char[size]);
+    std::snprintf(buf.get(), size, format.c_str(), args...);
+    return std::string(buf.get(), buf.get() + size);
+}
+
+// Output a text representation of vector to stream.
+// For pretty output, use prettify() to get string first.
+// @param out Stream to print to
+// @param vec Vector to print
+template <class T>
+std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec)
+{
+    out << '[';
+    for (size_t i = 0; i < vec.size(); i++) {
+        if (i != 0) out << ", ";
+        out << vec[i];
+    }
+    out << ']';
+    return out;
+}
+
+// Pretty print representation of vector.
+// For simple debug print, use << operator on vector directly.
+// @param vec Vector of <T> type
+template <class T>
+std::string prettify(const std::vector<T>& vec)
+{
+    std::ostringstream out;
+    out << "[\n";
+    for (size_t i = 0; i < vec.size(); i++) {
+        if (i != 0) out << ",\n";
+        out << std::setw(3) << std::setfill(' ') << i << " | " << vec[i];
+    }
+    out << "\n]";
+    return out.str();
+}
 
 const std::string run(const char*);
 std::vector<std::string> split(const std::string&, char);
-std::vector<std::string_view> splitSV(std::string_view, std::string_view);
+std::vector<std::string_view> split(const std::string_view, std::string_view);
 
 enum class Color : unsigned int
 {

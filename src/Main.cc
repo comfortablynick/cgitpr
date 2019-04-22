@@ -16,26 +16,31 @@ static const bool DEBUG_MODE = true;
 Options* Options::instance = nullptr;
 Repo* Repo::instance = nullptr;
 
+// Simple prompt emulating default bash promt that
+// ships with git.
 std::string simplePrompt()
 {
     std::ostringstream ss;
     std::string_view branch;
     bool dirty = false;
     const std::string git_status = run("git status --porcelain --branch");
-    VLOG(2) << "Git status output: " << git_status;
-
-    for (auto line : splitSV(git_status, "\n")) {
-        auto words = splitSV(line, " ");
+    auto lines = split(git_status, "\n");
+    VLOG(2) << "Git status lines: " << lines;
+    for (auto line : lines) {
+        auto words = split(line, " ");
         for (size_t i = 0; i < words.size(); i++) {
-            VLOG(3) << "Word: " << words[i] << "\n";
+            VLOG(3) << "Word: '" << words[i] << "'";
             if (words[i] == "##") {
                 i++;
-                branch = splitSV(words[i], "...")[0];
+                branch = split(words[i], "...")[0];
                 break;
             }
             if (words[i] != "") {
                 dirty = true;
                 break;
+            }
+            if (words[i] == "[behind") {
+                VLOG(3) << "Behind remote";
             }
             // TODO: parse ahead/behind to give in simple status
         }
