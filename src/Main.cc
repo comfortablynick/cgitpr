@@ -22,29 +22,28 @@ std::string simplePrompt()
 {
     std::ostringstream ss;
     std::string_view branch;
-    bool dirty = false;
-    const std::string git_status = run("git status --porcelain --branch");
+    bool dirty, ahead, behind;
+    const std::string git_status = run("git status --porcelain --branch --untracked-files=no");
     auto lines = split(git_status, "\n");
     VLOG(2) << "Git status lines: " << lines;
-    for (auto line : lines) {
-        auto words = split(line, " ");
-        for (size_t i = 0; i < words.size(); i++) {
-            VLOG(3) << "Word: '" << words[i] << "'";
-            if (words[i] == "##") {
-                i++;
-                branch = split(words[i], "...")[0];
-                break;
-            }
-            if (words[i] != "") {
-                dirty = true;
-                break;
-            }
-            if (words[i] == "[behind") {
-                VLOG(3) << "Behind remote";
-            }
-            // TODO: parse ahead/behind to give in simple status
+    auto words = split(lines[0], " ");
+    for (size_t i = 0; i < words.size(); i++) {
+        VLOG(3) << "Word: '" << words[i] << "'";
+        if (words[i] == "##") {
+            i++;
+            branch = split(words[i], "...")[0];
+        }
+        if (words[i] == "[behind") {
+            behind = true;
+            VLOG(3) << "Local branch is behind remote";
+        }
+        if (words[i] == "[ahead") {
+            ahead = true;
+            VLOG(3) << "Local branch is ahead of remote";
         }
     }
+    VLOG(3) << "HEAD: " << read_first_line(".git/HEAD");
+    if (lines.size() > 1) dirty = true;
     ss << Ansi::setFg(Color::cyan) << "(" << branch << ")";
     if (dirty) ss << Ansi::setFg(Color::red) << "*";
     ss << Ansi::reset();

@@ -1,6 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -60,6 +61,7 @@ enum class Color : unsigned int
     red = 124,
     yellow = 142,
     brcyan = 51,
+    brred = 196,
     bryellow = 226,
 };
 namespace Ansi {
@@ -67,4 +69,6 @@ namespace Ansi {
     std::string setFg(Color);
     std::string setBg(Color);
 } // namespace Ansi
+
+const std::string read_first_line(const char*);
 #endif // UTILS_H

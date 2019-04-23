@@ -1,9 +1,6 @@
 /** Generic utility functions */
 #include "Utils.h"
 #include <easylogging++.h>
-// #include <iostream>
-// #include <sstream>
-
 
 // Run command and get text output (stdout or stderr)
 //
@@ -95,3 +92,21 @@ namespace Ansi {
         return "\033[0m";
     }
 } // namespace Ansi
+
+// Read first line of file into string
+// @param filename Path of file to read
+const std::string read_first_line(const char* filename)
+{
+    std::ifstream file;
+    std::string line;
+    file.open(filename);
+
+    if (!file) {
+        std::cerr << Ansi::setFg(Color::brred) << "Error opening file: " << Ansi::reset()
+                  << filename << std::endl;
+        LOG(ERROR) << "Could not open file: " << filename;
+    } else {
+        std::getline(file, line);
+    }
+    return line;
+}
