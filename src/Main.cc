@@ -22,10 +22,17 @@ std::string simplePrompt()
 {
     std::ostringstream ss;
     std::string_view branch;
-    bool dirty, ahead, behind;
-    const std::string git_status = run("git status --porcelain --branch --untracked-files=no");
-    auto lines = split(git_status, "\n");
+    bool dirty, ahead, behind = false;
+    result_t git_status = run("git status --porcelain --branch --untracked-files=no 2>&1");
+    if (git_status.status != 0) {
+        exit(EXIT_FAILURE);
+    }
+    auto lines = split(git_status.stdout, "\n");
     VLOG(2) << "Git status lines: " << lines;
+    VLOG(2) << "Lines size: " << lines.size();
+    if (lines.size() != 1) {
+        dirty = true;
+    }
     auto words = split(lines[0], " ");
     for (size_t i = 0; i < words.size(); i++) {
         VLOG(3) << "Word: '" << words[i] << "'";
@@ -43,9 +50,10 @@ std::string simplePrompt()
         }
     }
     VLOG(3) << "HEAD: " << read_first_line(".git/HEAD");
-    if (lines.size() > 1) dirty = true;
     ss << Ansi::setFg(Color::cyan) << "(" << branch << ")";
-    if (dirty) ss << Ansi::setFg(Color::red) << "*";
+    if (dirty) {
+        ss << Ansi::setFg(Color::red) << "*";
+    }
     ss << Ansi::reset();
     return ss.str();
 }
@@ -352,10 +360,13 @@ int main(int argc, char* argv[])
     ri->Unstaged = *unstaged;
     ri->Staged = *staged;
 
-    const std::string gitStatus = run("git status --porcelain=2 --branch");
-    std::vector<std::string> statusLines = split(gitStatus, '\n');
-    for (size_t i = 0; i < statusLines.size(); i++) {
-        ri->parseGitStatus(statusLines[i]);
+    result_t git_status = run("git status --porcelain=2 --branch");
+    if (git_status.status != 0) {
+        exit(EXIT_FAILURE);
+    }
+    std::vector<std::string> status_lines = split(git_status.stdout, '\n');
+    for (size_t i = 0; i < status_lines.size(); i++) {
+        ri->parseGitStatus(status_lines[i]);
     }
 
     if (parseFmtStr(opts) == 1) return 1;
@@ -363,10 +374,10 @@ int main(int argc, char* argv[])
     // call git diff only if there are unstaged changes
     if (opts->show_diff == 1 && ri->Unstaged.hasChanged()) {
         VLOG(2) << "Repo is dirty; running git diff for numstat";
-        const std::string gitDiff = run("git diff --shortstat");
-        std::vector<std::string> diffLines = split(gitDiff, '\n');
-        for (size_t i = 0; i < diffLines.size(); i++) {
-            ri->parseGitDiff(diffLines[i]);
+        result_t git_diff = run("git diff --shortstat");
+        std::vector<std::string> diff_lines = split(git_diff.stdout, '\n');
+        for (size_t i = 0; i < diff_lines.size(); i++) {
+            ri->parseGitDiff(diff_lines[i]);
         }
     } else {
         VLOG(2) << "Repo is not dirty; git diff not called";

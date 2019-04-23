@@ -5,12 +5,13 @@
 // Run command and get text output (stdout or stderr)
 //
 // @param cmd Command for system to run
-const std::string run(const char* cmd)
+result_t run(const char* cmd)
 {
     std::string data;
     FILE* stream;
     const int max_buffer = 256;
     char buffer[max_buffer];
+    int rtval;
     VLOG(2) << "Cmd: `" << cmd << "'";
 
     stream = popen(cmd, "r");
@@ -19,9 +20,11 @@ const std::string run(const char* cmd)
             data.append(buffer);
         }
         if (ferror(stream)) LOG(ERROR) << "error getting stream for command: '" << cmd << "'";
-        pclose(stream);
+        rtval = pclose(stream);
+        VLOG(2) << "Command return val: " << rtval;
     }
-    return data;
+    result_t output{rtval, data};
+    return output;
 }
 
 // Split string by delimiter

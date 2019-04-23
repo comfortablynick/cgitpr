@@ -48,7 +48,14 @@ std::string prettify(const std::vector<T>& vec)
     return out.str();
 }
 
-const std::string run(const char*);
+// Holds the output of a system command
+struct result_t
+{
+    const int status;
+    const std::string stdout;
+};
+
+result_t run(const char*);
 std::vector<std::string> split(const std::string&, char);
 std::vector<std::string_view> split(const std::string_view, std::string_view);
 
