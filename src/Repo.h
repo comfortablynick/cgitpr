@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <stddef.h>
 
 class RepoArea
 {

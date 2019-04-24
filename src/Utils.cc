@@ -1,17 +1,23 @@
 /** Generic utility functions */
 #include "Utils.h"
 #include <easylogging++.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <algorithm>
+#include <iostream>
+#include <iterator>
 
 // Run command and get text output (stdout or stderr)
 //
 // @param cmd Command for system to run
-result_t run(const char* cmd)
+std::unique_ptr<result_t> run(const char* cmd)
 {
     std::string data;
     FILE* stream;
     const int max_buffer = 256;
     char buffer[max_buffer];
-    int rtval;
+    int rtval = -1;
     VLOG(2) << "Cmd: `" << cmd << "'";
 
     stream = popen(cmd, "r");
@@ -23,8 +29,34 @@ result_t run(const char* cmd)
         rtval = pclose(stream);
         VLOG(2) << "Command return val: " << rtval;
     }
-    result_t output{rtval, data};
+    std::unique_ptr<result_t> output = std::make_unique<result_t>();
+    output->status = rtval;
+    output->stdout = data;
     return output;
+}
+
+int exec(const char* file, const char* const argv[])
+{
+    std::size_t argc = 0;
+    std::size_t len = 0;
+
+    /* measure the inputs */
+    for (auto* p = argv; *p; ++p) {
+        VLOG(3) << "Arg " << argc << ": " << argv[argc];
+        ++argc;
+        len += std::strlen(*p) + 1;
+    }
+    /* allocate copies */
+    auto const arg_string = std::make_unique<char[]>(len);
+    auto const args = std::make_unique<char*[]>(argc + 1);
+    /* copy the inputs */
+    len = 0; // re-use for position in arg_string
+    for (auto i = 0u; i < argc; ++i) {
+        len += std::strlen(args[i] = std::strcpy(&arg_string[len], argv[i])) +
+               1; /* advance to one AFTER the nul */
+    }
+    args[argc] = nullptr;
+    return execvp(file, args.get());
 }
 
 // Split string by delimiter

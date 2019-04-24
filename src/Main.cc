@@ -2,9 +2,16 @@
 #include "Repo.h"
 #include "Utils.h"
 #include "easylogging++.h"
+#include <algorithm>
+#include <bits/getopt_core.h>
+#include <cstdlib>
+#include <ext/alloc_traits.h>
 #include <getopt.h>
 #include <iostream>
+#include <memory>
+#include <stdio.h>
 #include <string>
+#include <string_view>
 #include <vector>
 
 INITIALIZE_EASYLOGGINGPP
@@ -12,7 +19,6 @@ INITIALIZE_EASYLOGGINGPP
 
 // Globals and singleton classes
 static const char* VERSION = "0.0.1";
-static const bool DEBUG_MODE = true;
 Options* Options::instance = nullptr;
 Repo* Repo::instance = nullptr;
 
@@ -23,17 +29,15 @@ std::string simplePrompt()
     std::ostringstream ss;
     std::string_view branch;
     bool dirty, ahead, behind = false;
-    result_t git_status = run("git status --porcelain --branch --untracked-files=no 2>&1");
-    if (git_status.status != 0) {
+    std::unique_ptr<result_t> git_status =
+        run("git status --porcelain --branch --untracked-files=no 2>&1");
+    if (git_status->status != 0) {
         exit(EXIT_FAILURE);
     }
-    auto lines = split(git_status.stdout, "\n");
+    auto lines = split(git_status->stdout, "\n");
     VLOG(2) << "Git status lines: " << lines;
-    VLOG(2) << "Lines size: " << lines.size();
-    if (lines.size() != 1) {
-        dirty = true;
-    }
     auto words = split(lines[0], " ");
+
     for (size_t i = 0; i < words.size(); i++) {
         VLOG(3) << "Word: '" << words[i] << "'";
         if (words[i] == "##") {
@@ -42,14 +46,17 @@ std::string simplePrompt()
         }
         if (words[i] == "[behind") {
             behind = true;
-            VLOG(3) << "Local branch is behind remote";
         }
         if (words[i] == "[ahead") {
             ahead = true;
-            VLOG(3) << "Local branch is ahead of remote";
         }
     }
     VLOG(3) << "HEAD: " << read_first_line(".git/HEAD");
+    VLOG(3) << "Ahead: " << ahead << "; Behind: " << behind;
+
+    std::unique_ptr<result_t> dirty_result = run("git diff --no-ext-diff --quiet --exit-code");
+    VLOG(3) << "`git diff --exit-code` command result: " << dirty_result->status;
+    dirty = dirty_result->status == 0 ? false : true;
     ss << Ansi::setFg(Color::cyan) << "(" << branch << ")";
     if (dirty) {
         ss << Ansi::setFg(Color::red) << "*";
@@ -360,11 +367,11 @@ int main(int argc, char* argv[])
     ri->Unstaged = *unstaged;
     ri->Staged = *staged;
 
-    result_t git_status = run("git status --porcelain=2 --branch");
-    if (git_status.status != 0) {
+    std::unique_ptr<result_t> git_status = run("git status --porcelain=2 --branch");
+    if (git_status->status != 0) {
         exit(EXIT_FAILURE);
     }
-    std::vector<std::string> status_lines = split(git_status.stdout, '\n');
+    std::vector<std::string> status_lines = split(git_status->stdout, '\n');
     for (size_t i = 0; i < status_lines.size(); i++) {
         ri->parseGitStatus(status_lines[i]);
     }
@@ -374,8 +381,8 @@ int main(int argc, char* argv[])
     // call git diff only if there are unstaged changes
     if (opts->show_diff == 1 && ri->Unstaged.hasChanged()) {
         VLOG(2) << "Repo is dirty; running git diff for numstat";
-        result_t git_diff = run("git diff --shortstat");
-        std::vector<std::string> diff_lines = split(git_diff.stdout, '\n');
+        std::unique_ptr<result_t> git_diff = run("git diff --shortstat");
+        std::vector<std::string> diff_lines = split(git_diff->stdout, '\n');
         for (size_t i = 0; i < diff_lines.size(); i++) {
             ri->parseGitDiff(diff_lines[i]);
         }
