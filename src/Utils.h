@@ -3,11 +3,11 @@
 
 #include <fstream>
 #include <iomanip>
-#include <vector>
-#include <stdio.h>
 #include <memory>
+#include <stdio.h>
 #include <string>
 #include <string_view>
+#include <vector>
 
 template <typename... Args>
 std::string fmt(const std::string& format, Args... args)
@@ -58,9 +58,10 @@ struct result_t
 };
 
 std::unique_ptr<result_t> run(const char*);
-int exec(const char*, const char* const []);
+int exec(const char*, const char* const[]);
 std::vector<std::string> split(const std::string&, char);
 std::vector<std::string_view> split(const std::string_view, std::string_view);
+std::string qx(const std::vector<std::string>&, const bool);
 
 enum class Color : unsigned int
 {

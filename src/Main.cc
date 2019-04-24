@@ -18,6 +18,7 @@ INITIALIZE_EASYLOGGINGPP
 #define ELPP_STL_LOGGING
 
 // Globals and singleton classes
+// We need these available in multiple places
 static const char* VERSION = "0.0.1";
 Options* Options::instance = nullptr;
 Repo* Repo::instance = nullptr;
@@ -57,6 +58,7 @@ std::string simplePrompt()
     std::unique_ptr<result_t> dirty_result = run("git diff --no-ext-diff --quiet --exit-code");
     VLOG(3) << "`git diff --exit-code` command result: " << dirty_result->status;
     dirty = dirty_result->status == 0 ? false : true;
+
     ss << Ansi::setFg(Color::cyan) << "(" << branch << ")";
     if (dirty) {
         ss << Ansi::setFg(Color::red) << "*";
@@ -315,7 +317,7 @@ void processArgs(int argc, char** argv, Options* opts)
 // CLI entry point; direct to other funcs based on args.
 int main(int argc, char* argv[])
 {
-    Options* opts = opts->getInstance(); // singleton options object
+    Options* opts = Options::getInstance(); // singleton options object
 
     // Logger init
     el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
@@ -360,7 +362,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    Repo* ri = ri->getInstance();
+    Repo* ri = Repo::getInstance();
     RepoArea* unstaged = new RepoArea();
     RepoArea* staged = new RepoArea();
 

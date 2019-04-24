@@ -36,7 +36,7 @@ IF(NOT CMAKE_BUILD_TYPE)
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wextra -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wextra -pthread -Wno-unused-variable")
 message(STATUS "CXX Flags: ${CMAKE_CXX_FLAGS}")
 
 set(SOURCE_FILES
@@ -56,7 +56,9 @@ find_program(iwyu_path NAMES include-what-you-use iwyu)
 if(NOT iwyu_path)
     message(WARNING "Could not find the program include-what-you-use; skipping...")
 else()
+    message(STATUS "Performing tests with include-what-you-use")
     set_property(TARGET cgitpr PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${iwyu_path})
+    message(STATUS "Performing tests with include-what-you-use - done")
 endif()
 
 
