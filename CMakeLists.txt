@@ -54,10 +54,11 @@ target_link_libraries(cgitpr ${CONAN_LIBS})
 # include-what-you-use
 find_program(iwyu_path NAMES include-what-you-use iwyu)
 if(NOT iwyu_path)
-  message(FATAL_ERROR "Could not find the program include-what-you-use")
+    message(WARNING "Could not find the program include-what-you-use; skipping...")
+else()
+    set_property(TARGET cgitpr PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${iwyu_path})
 endif()
 
-set_property(TARGET cgitpr PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${iwyu_path})
 
 # install
 install(TARGETS cgitpr DESTINATION $ENV{HOME}/bin)
