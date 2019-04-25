@@ -152,7 +152,7 @@ const std::string read_first_line(const char* filename)
 // Modified from original: github.com/ericcurtin/execxx
 // @param args Arguments for command
 // @param inc_stderr Capture stderr output
-std::string qx(const std::vector<std::string>& args, const bool inc_stderr = false)
+std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool inc_stderr)
 {
     // stdout
     int stdout_fds[2];
@@ -179,7 +179,7 @@ std::string qx(const std::vector<std::string>& args, const bool inc_stderr = fal
             dup2(stderr_fds[1], 2);
             close(stderr_fds[1]);
         }
-        std::vector<char*> vc(args.size() + 1, NULL);
+        std::vector<char*> vc(args.size() + 1, nullptr);
         for (size_t i = 0; i < args.size(); ++i) {
             vc[i] = const_cast<char*>(args[i].c_str());
         }
@@ -213,6 +213,8 @@ std::string qx(const std::vector<std::string>& args, const bool inc_stderr = fal
     do {
         r = waitpid(pid, &status, 0);
     } while (r == -1 && errno == EINTR);
-
-    return out;
+    std::unique_ptr<result_t> cmd_result = std::make_unique<result_t>();
+    cmd_result->status = status;
+    cmd_result->stdout = out;
+    return cmd_result;
 }

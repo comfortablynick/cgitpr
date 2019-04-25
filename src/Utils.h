@@ -61,7 +61,7 @@ std::unique_ptr<result_t> run(const char*);
 int exec(const char*, const char* const[]);
 std::vector<std::string> split(const std::string&, char);
 std::vector<std::string_view> split(const std::string_view, std::string_view);
-std::string qx(const std::vector<std::string>&, const bool);
+std::unique_ptr<result_t> ex(const std::vector<std::string>&, const bool = false);
 
 enum class Color : unsigned int
 {

@@ -31,8 +31,10 @@ std::string simplePrompt()
     std::string_view branch;
     bool dirty, ahead, behind = false;
     std::unique_ptr<result_t> git_status =
-        run("git status --porcelain --branch --untracked-files=no 2>&1");
+        ex({"git", "status", "--porcelain", "--branch", "--untracked-files=no"}, true);
     if (git_status->status != 0) {
+        VLOG(2) << "Git status error output: " << git_status->stdout;
+        std::cerr << Ansi::setFg(Color::brred) << git_status->stdout << Ansi::reset();
         exit(EXIT_FAILURE);
     }
     auto lines = split(git_status->stdout, "\n");
@@ -55,7 +57,8 @@ std::string simplePrompt()
     VLOG(3) << "HEAD: " << read_first_line(".git/HEAD");
     VLOG(3) << "Ahead: " << ahead << "; Behind: " << behind;
 
-    std::unique_ptr<result_t> dirty_result = run("git diff --no-ext-diff --quiet --exit-code");
+    std::unique_ptr<result_t> dirty_result =
+        ex({"git", "diff", "--no-ext-diff", "--quiet", " --exit-code"});
     VLOG(3) << "`git diff --exit-code` command result: " << dirty_result->status;
     dirty = dirty_result->status == 0 ? false : true;
 
