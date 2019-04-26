@@ -10,6 +10,24 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+// String representation of (null-terminated) const char* array.
+//
+// @param argv Array of char pointers
+std::string prettify(const char* argv[])
+{
+    std::ostringstream out;
+    out << '{';
+
+    for (size_t i = 0; argv[i]; ++i) {
+        if (i != 0) out << ", ";
+        const char* ch = argv[i];
+        while (*ch) out << *(ch++);
+    }
+
+    out << '}';
+    return out.str();
+}
+
 // Run command and get text output (stdout or stderr)
 //
 // @param cmd Command for system to run
@@ -37,6 +55,7 @@ std::unique_ptr<result_t> run(const char* cmd)
     return output;
 }
 
+// One style of execution (not used currently)
 int exec(const char* file, const char* const argv[])
 {
     std::size_t argc = 0;
@@ -77,6 +96,7 @@ std::vector<std::string> split(const std::string& str, char delim = ' ')
 }
 
 // Split string view by one or more delimiters
+//
 // @param str String view to split
 // @param delims Delimiter(s)
 std::vector<std::string_view> split(const std::string_view str, std::string_view delims = " ")
@@ -150,10 +170,12 @@ const std::string read_first_line(const char* filename)
 
 // Execute process and return result object
 // Modified from original: github.com/ericcurtin/execxx
+//
 // @param args Arguments for command
 // @param inc_stderr Capture stderr output
 std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool inc_stderr)
 {
+    VLOG(3) << "ex() cmd: " << args;
     // stdout
     int stdout_fds[2];
     pipe(stdout_fds);
@@ -184,7 +206,6 @@ std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool in
             vc[i] = const_cast<char*>(args[i].c_str());
         }
         execvp(vc[0], &vc[0]);
-        exit(0);
     }
 
     close(stdout_fds[1]);

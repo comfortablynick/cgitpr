@@ -33,7 +33,6 @@ std::string simplePrompt()
     std::unique_ptr<result_t> git_status =
         ex({"git", "status", "--porcelain", "--branch", "--untracked-files=no"}, true);
     if (git_status->status != 0) {
-        VLOG(2) << "Git status error output: " << git_status->stdout;
         std::cerr << Ansi::setFg(Color::brred) << git_status->stdout << Ansi::reset();
         exit(EXIT_FAILURE);
     }
@@ -285,6 +284,7 @@ void processArgs(int argc, char** argv, Options* opts)
         case 's':
             opts->simple_mode = true;
             break;
+        case 'f':
             opts->format = std::string(optarg);
             break;
         case 'q':
@@ -327,11 +327,6 @@ int main(int argc, char* argv[])
     el::Logger* console = el::Loggers::getLogger("default");
     console->enabled(el::Level::Warning); // This doesn't seem to work as expected
 
-    if (opts->debug_print) {
-        console->enabled(el::Level::Trace);
-        LOG(INFO) << "Trace log level enabled!";
-    }
-
     // TODO: remove test argv+argc after testing
     std::vector<std::string> arguments(argv, argv + argc);
     // if (arguments.size() == 1) arguments.push_back("-v");
@@ -341,11 +336,6 @@ int main(int argc, char* argv[])
                    [](std::string& s) -> char* { return s.data(); });
 
     processArgs(arguments.size(), args, opts);
-
-    if (opts->debug_print) {
-        console->enabled(el::Level::Trace);
-        LOG(INFO) << "Trace log level enabled!";
-    }
 
     // log raw cli arguments
     if (VLOG_IS_ON(2)) {
@@ -372,7 +362,17 @@ int main(int argc, char* argv[])
     ri->Unstaged = *unstaged;
     ri->Staged = *staged;
 
-    std::unique_ptr<result_t> git_status = run("git status --porcelain=2 --branch");
+    if (parseFmtStr(opts) == 1) return 1;
+    std::vector<std::string> status_args(5);
+    status_args = {"git", "status", "--porcelain=2", "--branch", "--untracked-files=no"};
+
+    if (opts->show_untracked == 1) {
+        status_args[4] = "--untracked-files=all";
+        // normal: show untracked files and dirs
+        // all:    show individual files within dirs
+    }
+
+    std::unique_ptr<result_t> git_status = ex(status_args);
     if (git_status->status != 0) {
         exit(EXIT_FAILURE);
     }
@@ -380,8 +380,6 @@ int main(int argc, char* argv[])
     for (size_t i = 0; i < status_lines.size(); i++) {
         ri->parseGitStatus(status_lines[i]);
     }
-
-    if (parseFmtStr(opts) == 1) return 1;
 
     // call git diff only if there are unstaged changes
     if (opts->show_diff == 1 && ri->Unstaged.hasChanged()) {

@@ -57,24 +57,32 @@ struct result_t
     std::string stdout;
 };
 
+
+std::string prettify(const char*[]);
 std::unique_ptr<result_t> run(const char*);
 int exec(const char*, const char* const[]);
 std::vector<std::string> split(const std::string&, char);
 std::vector<std::string_view> split(const std::string_view, std::string_view);
 std::unique_ptr<result_t> ex(const std::vector<std::string>&, const bool = false);
 
+// Value on the Ansi 256 color spectrum
 enum class Color : unsigned int
 {
+    // std colors
     black = 0,
     blue = 12,
     green = 2,
     cyan = 37,
     red = 124,
     yellow = 142,
+    gray = 245,
+
+    // bright colors
     brcyan = 51,
     brred = 196,
     bryellow = 226,
 };
+
 namespace Ansi {
     std::string reset(void);
     std::string setFg(Color);

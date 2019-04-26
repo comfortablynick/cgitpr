@@ -236,10 +236,12 @@ std::string Repo::formatUntracked(bool indicators_only)
 {
     std::stringstream ss;
     if (this->untracked > 0) {
+        ss << Ansi::setFg(Color::gray);
         ss << this->UNTRACKED_GLYPH;
         if (!indicators_only) {
             ss << this->untracked;
         }
+        ss << Ansi::reset();
     }
     return ss.str();
 }
