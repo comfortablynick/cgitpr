@@ -4,39 +4,19 @@
 
 class Options
 {
-  private:
-    static Options* instance;
-    Options()
-    {
-        debug_print = false;
-        debug_quiet = false;
-        show_ahead_behind = false;
-        show_branch = false;
-        show_branch_glyph = false;
-        show_commit = false;
-        show_diff = false;
-        show_remote = false;
-        show_stashed = false;
-        show_staged_modified = false;
-        show_unstaged_modified = false;
-        show_untracked = false;
-        show_vcs = false;
-        format = "%g %b@%c %a %m %d %s %u %t";
-        no_color = false;
-        simple_mode = false;
-        dir = ".";
-    }
-
   public:
-    static Options* getInstance()
-    {
-        if (instance == 0) instance = new Options();
-        return instance;
-    }
     bool debug_print, debug_quiet, indicators_only, show_ahead_behind, show_branch,
         show_branch_glyph, show_commit, show_diff, show_remote, show_stashed, show_staged_modified,
         show_unstaged_modified, show_untracked, show_vcs, no_color, simple_mode;
     std::string format, dir;
+    Options()
+        : debug_print(false), debug_quiet(false), indicators_only(false), show_ahead_behind(false),
+          show_branch(false), show_branch_glyph(false), show_commit(false), show_diff(false),
+          show_remote(false), show_stashed(false), show_staged_modified(false),
+          show_unstaged_modified(false), show_untracked(false), show_vcs(false), no_color(false),
+          simple_mode(false), format("%g %b@%c %a %m %d %s %u %t"), dir(".")
+    {}
+
     friend std::ostream& operator<<(std::ostream& out, Options* obj)
     {
         out << "Options:" << '\n';
@@ -59,19 +39,5 @@ class Options
         out << "  Format: " << obj->format << '\n';
         out << "  Dir: " << obj->dir << '\n';
         return out;
-    }
-
-    inline void debug()
-    {
-        if (this->debug_print && !this->debug_quiet) {
-            std::cerr << this;
-        }
-    }
-
-    inline const std::string print()
-    {
-        std::ostringstream ss;
-        ss << this;
-        return ss.str();
     }
 };

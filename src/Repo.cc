@@ -8,7 +8,8 @@
 #include <string>
 #include <vector>
 
-std::ostream& operator<<(std::ostream& out, RepoArea* obj)
+std::ostream&
+operator<<(std::ostream& out, RepoArea* obj)
 {
     out << "  Added: " << obj->added << '\n';
     out << "  Copied: " << obj->copied << '\n';
@@ -19,16 +20,8 @@ std::ostream& operator<<(std::ostream& out, RepoArea* obj)
     return out;
 }
 
-void RepoArea::debug() { std::cerr << this; }
-
-std::string RepoArea::print()
-{
-    std::stringstream ss;
-    ss << this;
-    return ss.str();
-}
-
-void RepoArea::parseModified(const char& ltr)
+void
+RepoArea::parseModified(const char& ltr)
 {
     if (ltr == 'M') {
         modified++;
@@ -47,13 +40,15 @@ void RepoArea::parseModified(const char& ltr)
     }
 }
 
-bool RepoArea::hasChanged()
+bool
+RepoArea::hasChanged() const
 {
     return this->added + this->copied + this->deleted + this->modified + this->renamed != 0;
 }
 
 el::Logger* console = el::Loggers::getLogger("");
-std::ostream& operator<<(std::ostream& out, Repo* obj)
+std::ostream&
+operator<<(std::ostream& out, Repo* obj)
 {
     out << "Repo:\n";
     out << "Git Dir: " << obj->gitDir << '\n';
@@ -68,14 +63,15 @@ std::ostream& operator<<(std::ostream& out, Repo* obj)
     out << "Insertions: " << obj->insertions << '\n';
     out << "Deletions: " << obj->deletions << '\n';
     out << "Staged:\n";
-    out << obj->Staged.print();
+    out << obj->Staged;
     out << "Unstaged:\n";
-    out << obj->Unstaged.print();
+    out << obj->Unstaged;
     return out;
 }
 
 // Format modified file indicator and count
-std::string RepoArea::formatModified(bool indicators_only)
+std::string
+RepoArea::formatModified(bool indicators_only)
 {
     std::stringstream ss;
     if (this->hasChanged()) {
@@ -89,21 +85,10 @@ std::string RepoArea::formatModified(bool indicators_only)
     return ss.str();
 }
 
-// Print self using << overload.
-void Repo::debug(void) { std::cerr << this; }
-
-// Print to stringstream using << overload.
-std::string Repo::print(void)
-{
-    std::stringstream ss;
-    ss << this;
-    return ss.str();
-}
-
-
 // Parse branch details from `git status` string.
 // @param str Git command output
-void Repo::parseBranch(const std::string& str)
+void
+Repo::parseBranch(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
     if (words[1] == "branch.oid") {
@@ -124,16 +109,18 @@ void Repo::parseBranch(const std::string& str)
 
 // Parse modified file details (Unstaged or Staged).
 // @param str Git command output
-void Repo::parseTrackedFile(const std::string& str)
+void
+Repo::parseTrackedFile(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
-    Staged.parseModified(words[1][0]);
-    Unstaged.parseModified(words[1][1]);
+    Staged->parseModified(words[1][0]);
+    Unstaged->parseModified(words[1][1]);
 }
 
 // Send `git status` lines to correct function to be parsed.
 // @param str Git command output
-void Repo::parseGitStatus(const std::string& str)
+void
+Repo::parseGitStatus(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
     if (words[0] == "#") {
@@ -152,7 +139,8 @@ void Repo::parseGitStatus(const std::string& str)
 
 // Parse `git diff --shortstat` to get inserted/deleted lines
 // @param str Git command output
-void Repo::parseGitDiff(const std::string& str)
+void
+Repo::parseGitDiff(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
     for (size_t i = 0; i < words.size(); i++) {
@@ -163,7 +151,8 @@ void Repo::parseGitDiff(const std::string& str)
 
 // Format output of ahead/behind data
 // @param indicators_only Show symbols only, not numbers
-std::string Repo::formatAheadBehind(bool indicators_only)
+const std::string
+Repo::formatAheadBehind(bool indicators_only) const
 {
     std::stringstream ss;
     if (this->ahead > 0) {
@@ -182,7 +171,8 @@ std::string Repo::formatAheadBehind(bool indicators_only)
 }
 
 // Format output of branch
-std::string Repo::formatBranch()
+const std::string
+Repo::formatBranch() const
 {
     std::ostringstream ss;
     ss << Ansi::setFg(Color::blue) << this->branch << Ansi::reset();
@@ -191,7 +181,8 @@ std::string Repo::formatBranch()
 
 // Format commit hash
 // @param string_len Length of commit hash representation
-std::string Repo::formatCommit(size_t str_len)
+const std::string
+Repo::formatCommit(size_t str_len) const
 {
     std::stringstream ss;
     ss << Ansi::setBg(Color::green);
@@ -203,7 +194,8 @@ std::string Repo::formatCommit(size_t str_len)
 
 // Format `diff numstat` details
 // untracked
-std::string Repo::formatDiff()
+const std::string
+Repo::formatDiff() const
 {
     std::stringstream ss;
     if (this->insertions > 0) {
@@ -219,7 +211,8 @@ std::string Repo::formatDiff()
 }
 
 // Format stash count/icon
-std::string Repo::formatStashed(bool indicators_only)
+const std::string
+Repo::formatStashed(bool indicators_only) const
 {
     std::stringstream ss;
     if (this->stashed > 0) {
@@ -232,7 +225,8 @@ std::string Repo::formatStashed(bool indicators_only)
 }
 
 // Format untracked files count/icon
-std::string Repo::formatUntracked(bool indicators_only)
+const std::string
+Repo::formatUntracked(bool indicators_only) const
 {
     std::stringstream ss;
     if (this->untracked > 0) {

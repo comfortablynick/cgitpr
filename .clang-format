@@ -4,7 +4,7 @@ Standard: Cpp11
 IndentWidth: 4
 ColumnLimit: 100
 UseTab: Never
-# AlwaysBreakAfterReturnType: TopLevel
+AlwaysBreakAfterReturnType: TopLevel
 MaxEmptyLinesToKeep: 2
 PointerAlignment: Left
 SortIncludes: true

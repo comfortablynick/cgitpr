@@ -17,15 +17,12 @@
 INITIALIZE_EASYLOGGINGPP
 #define ELPP_STL_LOGGING
 
-// Globals and singleton classes
-// We need these available in multiple places
 static const char* VERSION = "0.0.1";
-Options* Options::instance = nullptr;
-Repo* Repo::instance = nullptr;
 
-// Simple prompt emulating default bash promt that
+// Simple prompt emulating default bash prompt that
 // ships with git.
-std::string simplePrompt()
+const std::string
+simplePrompt()
 {
     std::ostringstream ss;
     std::string_view branch;
@@ -72,7 +69,8 @@ std::string simplePrompt()
     return ss.str();
 }
 
-std::string printOutput(Options* opts, Repo* ri)
+const std::string
+printOutput(std::shared_ptr<Options> opts, std::shared_ptr<Repo> ri)
 {
     std::stringstream ss;
     std::string& fmt = opts->format;
@@ -100,7 +98,7 @@ std::string printOutput(Options* opts, Repo* ri)
                 ss << ri->BRANCH_GLYPH;
                 break;
             case 'm':
-                ss << ri->Unstaged.formatModified(ind);
+                ss << ri->Unstaged->formatModified(ind);
                 break;
             case 'n':
                 ss << "git";
@@ -109,7 +107,7 @@ std::string printOutput(Options* opts, Repo* ri)
                 ss << ri->remote;
                 break;
             case 's':
-                ss << ri->Staged.formatModified(ind);
+                ss << ri->Staged->formatModified(ind);
                 break;
             case 't':
                 ss << ri->formatStashed(ind);
@@ -135,7 +133,8 @@ std::string printOutput(Options* opts, Repo* ri)
 // based on user input.
 //
 // @param opts Options object
-int parseFmtStr(Options* opts)
+int
+parseFmtStr(std::shared_ptr<Options> opts)
 {
     std::string& fmt = opts->format;
 
@@ -192,7 +191,8 @@ int parseFmtStr(Options* opts)
 /**
  * Output program help text to stderr.
  */
-void printShortHelp(void)
+static void
+printShortHelp()
 {
     std::cerr << Ansi::setFg(Color::green) << "cgitpr " << Ansi::reset() << VERSION
               << "\ngit repo status for your prompt, written in C++.\n"
@@ -219,7 +219,8 @@ void printShortHelp(void)
 /**
  * Print extra help details to stderr if --help is called.
  */
-void printHelpEpilog(void)
+static void
+printHelpEpilog()
 {
     std::cerr << Ansi::setFg(Color::bryellow) << "\nFormat string may contain:\n"
               << Ansi::reset()
@@ -242,7 +243,8 @@ void printHelpEpilog(void)
 // @param argc Argument count
 // @param argv Command line arguments
 // @param opts Options object
-void processArgs(int argc, char** argv, Options* opts)
+void
+processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
 {
     const char* const short_opts = ":dv::f:qhVisn";
     const option long_opts[] = {
@@ -321,9 +323,10 @@ void processArgs(int argc, char** argv, Options* opts)
 }
 
 // CLI entry point; direct to other funcs based on args.
-int main(int argc, char* argv[])
+int
+main(int argc, char* argv[])
 {
-    Options* opts = Options::getInstance(); // singleton options object
+    std::shared_ptr<Options> opts = std::make_shared<Options>();
 
     // Logger init
     el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
@@ -358,12 +361,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    Repo* ri = Repo::getInstance();
-    RepoArea* unstaged = new RepoArea();
-    RepoArea* staged = new RepoArea();
-
-    ri->Unstaged = *unstaged;
-    ri->Staged = *staged;
+    std::shared_ptr<Repo> ri = std::make_shared<Repo>();
 
     if (parseFmtStr(opts) == 1) return 1;
     std::vector<std::string> status_args(5);
@@ -385,7 +383,7 @@ int main(int argc, char* argv[])
     }
 
     // call git diff only if there are unstaged changes
-    if (opts->show_diff == 1 && ri->Unstaged.hasChanged()) {
+    if (opts->show_diff == 1 && ri->Unstaged->hasChanged()) {
         VLOG(2) << "Repo is dirty; running git diff for numstat";
         std::unique_ptr<result_t> git_diff = run("git diff --shortstat");
         std::vector<std::string> diff_lines = split(git_diff->stdout, '\n');
@@ -400,8 +398,4 @@ int main(int argc, char* argv[])
     VLOG(1) << opts;
 
     std::cout << printOutput(opts, ri) << std::endl;
-
-    delete unstaged;
-    delete staged;
-    return 0;
 }
