@@ -23,7 +23,9 @@ operator<<(std::ostream& out, RepoArea* obj)
 void
 RepoArea::parseModified(const char& ltr)
 {
-    if (ltr == 'M') {
+    // count 'typechange' as a modified file
+    if (ltr == 'M' || ltr == 'T') {
+        // TODO: possibly add counter for 'typechange'
         modified++;
     }
     if (ltr == 'A') {
@@ -70,8 +72,8 @@ operator<<(std::ostream& out, Repo* obj)
 }
 
 // Format modified file indicator and count
-std::string
-RepoArea::formatModified(bool indicators_only)
+const std::string
+RepoArea::formatModified(bool indicators_only) const
 {
     std::stringstream ss;
     if (this->hasChanged()) {

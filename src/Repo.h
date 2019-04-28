@@ -16,7 +16,7 @@ class RepoArea
     friend std::ostream& operator<<(std::ostream&, RepoArea*);
     void parseModified(const char&);
     bool hasChanged() const;
-    std::string formatModified(bool);
+    const std::string formatModified(bool) const;
 };
 
 class Repo
@@ -24,8 +24,8 @@ class Repo
   public:
     const char* const BRANCH_GLYPH = "";
     const char* const UNTRACKED_GLYPH = "…";
-    const char* const AHEAD_GLYPH = "↑";
-    const char* const BEHIND_GLYPH = "↓";
+    const char* const AHEAD_GLYPH = "⇡";
+    const char* const BEHIND_GLYPH = "⇣";
     const char STASH_GLYPH = '$';
     std::string gitDir, branch, commit, remote, upstream;
     unsigned int stashed, ahead, behind, untracked, unmerged, insertions, deletions;
@@ -33,7 +33,6 @@ class Repo
     Repo()
         : stashed(0), ahead(0), behind(0), untracked(0), unmerged(0), insertions(0), deletions(0),
           Unstaged(new RepoArea()), Staged(new RepoArea()){};
-
 
     friend std::ostream& operator<<(std::ostream&, Repo*);
     void parseBranch(const std::string&);
