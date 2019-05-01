@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project (cgitpr)
+project(cgitpr)
 
 # print cmake/system details
 message(STATUS "CMake version:    ${CMAKE_SYSTEM_VERSION}")
@@ -8,59 +8,36 @@ message(STATUS "Compiler:         ${CMAKE_CXX_COMPILER}")
 message(STATUS "Operating System: ${CMAKE_SYSTEM}")
 message(STATUS "Processor:        ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
+set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_STANDARD 17)
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
-
-# check for c++17/c++1x
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-CHECK_CXX_COMPILER_FLAG("-std=c++1x" COMPILER_SUPPORTS_CXX1X)
-if(COMPILER_SUPPORTS_CXX17)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-elseif(COMPILER_SUPPORTS_CXX1X)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1x")
-else()
-        message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++17 support. Please use a different C++ compiler.")
-endif()
-
-# compile
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_SHARED_LIBS ON)
 
-# build settings
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
-      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
-      FORCE)
-ENDIF(NOT CMAKE_BUILD_TYPE)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wextra -pthread -Wno-unused-variable")
+include(cmake/compiler_check.cmake)
+include(cmake/build_safeguards.cmake)
+
+set(CMAKE_CXX_FLAGS
+    "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wextra -pthread -Wno-unused-variable")
 message(STATUS "CXX Flags: ${CMAKE_CXX_FLAGS}")
 
 set(SOURCE_FILES
-        src/Main.cc
-        src/Options.h
-        src/Repo.cc
-        src/Repo.h
-        src/Utils.cc
-        src/Utils.h
-)
+    src/Main.cc
+    src/Options.h
+    src/Repo.cc
+    src/Repo.h
+    src/Utils.cc
+    src/Utils.h)
 
-add_executable(cgitpr ${SOURCE_FILES})
-target_link_libraries(cgitpr ${CONAN_LIBS})
+# MAIN_PROJECT_NAME allows us to use a name different from the project
+set(MAIN_TARGET_NAME ${PROJECT_NAME})
+add_executable(${MAIN_TARGET_NAME} ${SOURCE_FILES})
+target_link_libraries(${MAIN_TARGET_NAME} ${CONAN_LIBS})
 
-# include-what-you-use
-find_program(iwyu_path NAMES include-what-you-use iwyu)
-if(NOT iwyu_path)
-    message(WARNING "Could not find the program include-what-you-use; skipping...")
-else()
-    message(STATUS "Performing tests with include-what-you-use")
-    set_property(TARGET cgitpr PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${iwyu_path})
-    message(STATUS "Performing tests with include-what-you-use - done")
-endif()
-
+# check include-what-you-use
+include(cmake/iwyu.cmake)
 
 # install
-install(TARGETS cgitpr DESTINATION $ENV{HOME}/bin)
+install(TARGETS ${MAIN_TARGET_NAME} DESTINATION $ENV{HOME}/bin)
