@@ -1,6 +1,6 @@
 #include "Repo.h"
 #include "Utils.h"
-#include <easylogging++.h>
+// #include <easylogging++.h>
 
 #include <ext/alloc_traits.h>
 #include <iostream>
@@ -48,7 +48,6 @@ RepoArea::hasChanged() const
     return this->added + this->copied + this->deleted + this->modified + this->renamed != 0;
 }
 
-el::Logger* console = el::Loggers::getLogger("");
 std::ostream&
 operator<<(std::ostream& out, Repo* obj)
 {

@@ -1,7 +1,8 @@
 /** Generic utility functions */
 #include "Utils.h"
 #include <algorithm>
-#include <easylogging++.h>
+// #include <easylogging++.h>
+#include "loguru.hpp"
 #include <errno.h>
 #include <iostream>
 #include <iterator>
@@ -40,16 +41,16 @@ run(const char* cmd)
     const int max_buffer = 256;
     char buffer[max_buffer];
     int rtval = -1;
-    VLOG(2) << "Cmd: `" << cmd << "'";
+    LOG_S(INFO) << "Cmd: `" << cmd << "'";
 
     stream = popen(cmd, "r");
     if (stream) {
         while (fgets(buffer, max_buffer, stream) != nullptr) {
             data.append(buffer);
         }
-        if (ferror(stream)) LOG(ERROR) << "error getting stream for command: '" << cmd << "'";
+        if (ferror(stream)) LOG_S(ERROR) << "error getting stream for command: '" << cmd << "'";
         rtval = pclose(stream);
-        VLOG(2) << "Command return val: " << rtval;
+        LOG_S(INFO) << "Command return val: " << rtval;
     }
     std::unique_ptr<result_t> output = std::make_unique<result_t>();
     output->status = rtval;
@@ -66,9 +67,9 @@ exec(const char* file, const char* const argv[])
 
     /* measure the inputs */
     for (auto* p = argv; *p; ++p) {
-        VLOG(3) << "Arg " << argc << ": " << argv[argc];
+        LOG_S(INFO) << "Arg " << argc << ": " << argv[argc];
         ++argc;
-        len += std::strlen(*p) + 1;
+        len += strlen(*p) + 1;
     }
     /* allocate copies */
     auto const arg_string = std::make_unique<char[]>(len);
@@ -76,7 +77,7 @@ exec(const char* file, const char* const argv[])
     /* copy the inputs */
     len = 0; // re-use for position in arg_string
     for (auto i = 0u; i < argc; ++i) {
-        len += std::strlen(args[i] = std::strcpy(&arg_string[len], argv[i])) +
+        len += strlen(args[i] = strcpy(&arg_string[len], argv[i])) +
                1; /* advance to one AFTER the nul */
     }
     args[argc] = nullptr;
@@ -167,7 +168,7 @@ read_first_line(const char* filename)
     if (!file) {
         std::cerr << Ansi::setFg(Color::brred) << "Error opening file: " << Ansi::reset()
                   << filename << std::endl;
-        LOG(ERROR) << "Could not open file: " << filename;
+        LOG_S(ERROR) << "Could not open file: " << filename;
     } else {
         std::getline(file, line);
     }
@@ -182,7 +183,7 @@ read_first_line(const char* filename)
 std::unique_ptr<result_t>
 ex(const std::vector<std::string>& args, const bool inc_stderr)
 {
-    VLOG(3) << "ex() cmd: " << args;
+    LOG_S(INFO) << "ex() cmd: " << args;
     // stdout
     int stdout_fds[2];
     pipe(stdout_fds);

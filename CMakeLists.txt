@@ -13,15 +13,23 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_SHARED_LIBS ON)
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
+# include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake) conan_basic_setup()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(compiler_check)
 include(build_safeguards)
 
+# find dependencies
+find_package(loguru)
+message(STATUS "PACKAGE loguru source dir: ${loguru_SOURCE_DIR}")
+message(STATUS "PACKAGE loguru binary dir: ${loguru_BINARY_DIR}")
+include_directories("${loguru_SOURCE_DIR}")
+add_library(loguru STATIC ${loguru_SOURCE_DIR}/loguru.cpp
+                          ${loguru_SOURCE_DIR}/loguru.hpp)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wextra")
 set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wextra -pthread -Wno-unused-variable")
+    "${CMAKE_CXX_FLAGS} -pthread -lpthread -ldl -Wno-unused-variable")
 message(STATUS "CXX Flags: ${CMAKE_CXX_FLAGS}")
 
 set(SOURCE_FILES
@@ -34,8 +42,9 @@ set(SOURCE_FILES
 
 # MAIN_PROJECT_NAME allows us to use a name different from the project
 set(MAIN_TARGET_NAME ${PROJECT_NAME})
+add_definitions(-DLOGURU_WITH_STREAMS=1)
 add_executable(${MAIN_TARGET_NAME} ${SOURCE_FILES})
-target_link_libraries(${MAIN_TARGET_NAME} ${CONAN_LIBS})
+target_link_libraries(${MAIN_TARGET_NAME} loguru) # ${CONAN_LIBS}
 
 # check include-what-you-use
 include(iwyu)
