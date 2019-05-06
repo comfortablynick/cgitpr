@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 template <typename... Args>
@@ -28,7 +29,7 @@ std::ostream&
 operator<<(std::ostream& out, const std::vector<T>& vec)
 {
     out << '[';
-    for (size_t i = 0; i < vec.size(); i++) {
+    for (size_t i = 0; i < vec.size(); ++i) {
         if (i != 0) out << ", ";
         out << vec[i];
     }
@@ -45,7 +46,7 @@ prettify(const std::vector<T>& vec)
 {
     std::ostringstream out;
     out << "[\n";
-    for (size_t i = 0; i < vec.size(); i++) {
+    for (size_t i = 0; i < vec.size(); ++i) {
         if (i != 0) out << ",\n";
         out << std::setw(3) << std::setfill(' ') << i << " | " << vec[i];
     }
@@ -114,7 +115,7 @@ class Options
           show_branch(false), show_branch_glyph(false), show_commit(false), show_diff(false),
           show_remote(false), show_stashed(false), show_staged_modified(false),
           show_unstaged_modified(false), show_untracked(false), show_vcs(false), no_color(false),
-          simple_mode(false), format("%g %b@%c %a %m %d %s %u %t"), dir("."), verbosity(0)
+          simple_mode(false), format("%g %b@%c %a %m %d %s %u %t"), dir("."), verbosity(-2)
     {}
 
     friend std::ostream& operator<<(std::ostream& out, Options* obj)
@@ -142,5 +143,45 @@ class Options
         return out;
     }
 };
+
+struct termsize
+{
+    unsigned cols, lines;
+};
+
+std::shared_ptr<termsize>
+getTermSize();
+
+namespace format_helper {
+
+    template <class Src>
+    inline Src cast(Src v)
+    {
+        return v;
+    }
+
+    inline const char* cast(const std::string& v) { return v.c_str(); }
+}; // namespace format_helper
+
+// Return a sprintf-style formatted string using C++ methods
+template <typename... Ts>
+inline std::string
+stringfmt(const std::string& fmt, Ts&&... vs)
+{
+    using namespace format_helper;
+    char b;
+    size_t required = std::snprintf(
+        &b, 0, fmt.c_str(),
+        cast(std::forward<Ts>(vs))...); // not counting the terminating null character.
+    std::string result;
+    result.resize(required, 0);
+    std::snprintf(const_cast<char*>(result.data()), required + 1, fmt.c_str(),
+                  cast(std::forward<Ts>(vs))...);
+
+    return result;
+}
+
+const std::string
+vformat(const char* const, ...);
 
 #endif // COMMON_H

@@ -1,12 +1,13 @@
 /** Common code for project */
 #include "common.h"
-#include <algorithm>
 #include "loguru.hpp"
+#include <algorithm>
 #include <errno.h>
 #include <iostream>
 #include <iterator>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -245,4 +246,22 @@ ex(const std::vector<std::string>& args, const bool inc_stderr)
     cmd_result->status = status;
     cmd_result->stdout = out;
     return cmd_result;
+}
+
+std::shared_ptr<termsize>
+getTermSize()
+{
+    std::shared_ptr<termsize> tsize_t = std::make_shared<termsize>();
+#if defined(TIOCGSIZE)
+    struct ttysize ts;
+    ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+    tsize_t->cols = ts.ts_cols;
+    tsize_t->lines = ts.ts_lines;
+#elif defined(TIOCGWINSZ)
+    struct winsize ts;
+    ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
+    tsize_t->cols = ts.ws_col;
+    tsize_t->lines = ts.ws_row;
+#endif
+    return tsize_t;
 }

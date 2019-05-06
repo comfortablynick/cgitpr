@@ -33,11 +33,11 @@ simplePrompt()
         exit(EXIT_FAILURE);
     }
     auto lines = split(git_status->stdout, "\n");
-    LOG_S(INFO) << "Git status lines: " << lines;
+    LOG_S(1) << "Git status lines: " << lines;
     auto words = split(lines[0], " ");
 
     for (size_t i = 0; i < words.size(); i++) {
-        LOG_S(INFO) << "Word: '" << words[i] << "'";
+        LOG_S(2) << "Word: '" << words[i] << "'";
         if (words[i] == "##") {
             i++;
             branch = split(words[i], "...")[0];
@@ -74,9 +74,9 @@ printOutput(std::shared_ptr<Options> opts, std::shared_ptr<Repo> ri)
     std::string& fmt = opts->format;
     bool ind = opts->indicators_only;
 
-    for (size_t i = 0; i < fmt.length(); i++) {
+    for (size_t i = 0; i < fmt.length(); ++i) {
         if (fmt[i] == '%') {
-            i++;
+            ++i;
             switch (fmt[i]) {
             case '\0':
                 break;
@@ -136,9 +136,9 @@ parseFmtStr(std::shared_ptr<Options> opts)
 {
     std::string& fmt = opts->format;
 
-    for (size_t i = 0; i < fmt.length(); i++) {
+    for (size_t i = 0; i < fmt.length(); ++i) {
         if (fmt[i] == '%') {
-            i++;
+            ++i;
             switch (fmt[i]) {
             case '\0': // end of string
                 break;
@@ -243,15 +243,19 @@ printHelpEpilog()
 void
 processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
 {
-    const char* const short_opts = ":d:f:qhVvisn";
-    const option long_opts[] = {
-        {"dir", required_argument, nullptr, 'd'},       {"verbose", no_argument, nullptr, 'v'},
-        {"format", required_argument, nullptr, 'f'},    {"help", no_argument, nullptr, 1},
-        {"version", no_argument, nullptr, 'V'},         {"quiet", no_argument, nullptr, 'q'},
-        {"indicators-only", no_argument, nullptr, 'i'}, {"no-color", no_argument, nullptr, 'n'},
-        {"simple", no_argument, nullptr, 's'},          {nullptr, no_argument, nullptr, 0}};
+    const char* const short_opts = "d:f:v:qhVisn";
+    const option long_opts[] = {{"dir", required_argument, nullptr, 'd'},
+                                {"verbose", required_argument, nullptr, 'v'},
+                                {"format", required_argument, nullptr, 'f'},
+                                {"help", no_argument, nullptr, 1},
+                                {"version", no_argument, nullptr, 'V'},
+                                {"quiet", no_argument, nullptr, 'q'},
+                                {"indicators-only", no_argument, nullptr, 'i'},
+                                {"no-color", no_argument, nullptr, 'n'},
+                                {"simple", no_argument, nullptr, 's'},
+                                {nullptr, no_argument, nullptr, 0}};
 
-    while (true) {
+    for (;;) {
         const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
         if (opt == -1) break;
         switch (opt) {
@@ -264,7 +268,6 @@ processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
             opts->debug_print = true;
             break;
         case 'v':
-            ++opts->verbosity;
             break;
         case 'V':
             std::cerr << Ansi::setBg(Color::green) << argv[0] << Ansi::reset() << " "
@@ -286,7 +289,7 @@ processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
         case 'q':
             opts->debug_quiet = true;
             opts->debug_print = false;
-            // loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
+            loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
             break;
         // Long-only opts (by number instead of char flag)
         case 1:
@@ -298,13 +301,7 @@ processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
             opts->dir = std::string(optarg);
             break;
         case '?':
-            // TODO: does not print if not a char; figure out how to parse any values
-            LOG_S(ERROR) << "Parsing error: unknown opt '" << (char)optopt << "'\n";
-            printShortHelp();
-            exit(1);
         case ':':
-            LOG_S(ERROR) << "Parsing error: missing arg for '" << (char)optopt << "'\n";
-            printShortHelp();
             exit(1);
         default:
             printShortHelp();
@@ -321,7 +318,10 @@ main(int argc, char* argv[])
 
     // Manipulate arguments if needed
     std::vector<std::string> arguments(argv, argv + argc);
-    // arguments.push_back("-v");
+    // if (argc == 1) {
+    //     arguments.push_back("-v");
+    //     arguments.push_back("INFO");
+    // }
 
     std::vector<char*> args;
     for (auto& str : arguments) {
@@ -330,13 +330,22 @@ main(int argc, char* argv[])
     int arg_ct = args.size();
     processArgs(arg_ct, args.data(), opts);
 
+    std::shared_ptr<termsize> tsize = getTermSize();
+
     // init loguru
     loguru::g_flush_interval_ms = 100;
-    loguru::g_preamble_thread = false;
-    loguru::g_preamble_date = false;
-    loguru::g_preamble_time = false;
-    // loguru::g_stderr_verbosity = loguru::Verbosity_INFO;
-    loguru::init(arg_ct, args.data(), nullptr);
+    if (tsize->cols < 200) {
+        loguru::g_preamble_thread = false;
+        loguru::g_preamble_date = false;
+        loguru::g_preamble_time = false;
+        if (tsize->cols < 100) {
+            loguru::g_preamble_file = false;
+        }
+    }
+    if (opts->verbosity <= 0 || opts->debug_quiet) loguru::g_stderr_verbosity = -9;
+    loguru::init(arg_ct, args.data(), "-v");
+
+    LOG_F(1, "Term size: %dx%d", tsize->cols, tsize->lines);
 
     // TODO: check if in git repo
     CHECK_F(opts->format != "");
