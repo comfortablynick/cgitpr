@@ -10,7 +10,7 @@ mkdir build && cd build || exit 1
 # conan build ..
 
 # build
-cmake .. -DFETCHCONTENT_QUIET=OFF
+cmake .. # -DFETCHCONTENT_QUIET=OFF
 make install
 
 # link compile_commands.json for source code completion

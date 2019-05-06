@@ -1,7 +1,7 @@
+#include "../config.h"
 #include "Options.h"
 #include "Repo.h"
 #include "Utils.h"
-// #include "easylogging++.h"
 #include "loguru.hpp"
 #include <algorithm>
 #include <bits/getopt_core.h>
@@ -14,11 +14,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
-// INITIALIZE_EASYLOGGINGPP
-// #define ELPP_STL_LOGGING
-
-static const char* VERSION = "0.0.1";
 
 // Simple prompt emulating default bash prompt that
 // ships with git.
@@ -36,11 +31,11 @@ simplePrompt()
         exit(EXIT_FAILURE);
     }
     auto lines = split(git_status->stdout, "\n");
-    LOG_S(INFO) << "Git status lines: " << lines;
+    VLOG(INFO) << "Git status lines: " << lines;
     auto words = split(lines[0], " ");
 
     for (size_t i = 0; i < words.size(); i++) {
-        LOG_S(INFO) << "Word: '" << words[i] << "'";
+        VLOG(INFO) << "Word: '" << words[i] << "'";
         if (words[i] == "##") {
             i++;
             branch = split(words[i], "...")[0];
@@ -52,14 +47,14 @@ simplePrompt()
             ahead = true;
         }
     }
-    LOG_S(INFO) << "HEAD: " << read_first_line(".git/HEAD");
-    LOG_S(INFO) << "Ahead: " << ahead << "; Behind: " << behind;
+    VLOG(INFO) << "HEAD: " << read_first_line(".git/HEAD");
+    VLOG(INFO) << "Ahead: " << ahead << "; Behind: " << behind;
 
     std::vector<std::string> dirty_cmd(5);
     dirty_cmd = {"git", "diff", "--no-ext-diff", "--quiet", " --exit-code"};
     std::unique_ptr<result_t> dirty_result = ex(dirty_cmd);
 
-    LOG_S(INFO) << "`git diff --exit-code` command result: " << dirty_result->status;
+    VLOG(INFO) << "`git diff --exit-code` command result: " << dirty_result->status;
     dirty = dirty_result->status == 0 ? false : true;
 
     ss << Ansi::setFg(Color::cyan) << "(" << branch << ")";
@@ -195,25 +190,24 @@ parseFmtStr(std::shared_ptr<Options> opts)
 static void
 printShortHelp()
 {
-    std::cerr << Ansi::setFg(Color::green) << "cgitpr " << Ansi::reset() << VERSION
-              << "\ngit repo status for your prompt, written in C++.\n"
-              << "Nick Murphy <comfortablynick@gmail.com>\n"
+    std::cerr << Ansi::setFg(Color::green) << PACKAGE_STRING << Ansi::reset() << '\n'
+              << PACKAGE_DESCRIPTION << '\n'
+              << PACKAGE_URL << '\n'
               << Ansi::setFg(Color::bryellow) << "\nUSAGE:\n"
               << Ansi::setFg(Color::green) << "  cgitpr [FLAGS] [OPTIONS]\n"
               << Ansi::setFg(Color::bryellow) << "\nFLAGS:\n"
               << Ansi::reset()
               << "  -h, --help             Show short or long help message and exit\n"
-              << "  -V, --version          Print version and exit\n"
-              << "  -d, --debug            Print debug messages to console\n"
-              << "  -s, --simple           Simple output, similar to default bash git prompt\n"
-              << "  -n, --no-color         Disable color in output\n"
-              << "  -q, --quiet            Quiet debug output (overrides -v/-d)\n"
-              << "  -i, --indicators-only  Show symbols only in output (no counts)\n"
+                 "  -V, --version          Print version and exit\n"
+                 "  -v, --verbose          Log verbosity; ex: -v, -vv, -vvv\n"
+                 "  -s, --simple           Simple output, similar to default bash git prompt\n"
+                 "  -n, --no-color         Disable color in output\n"
+                 "  -q, --quiet            Quiet debug output (overrides -v/-d)\n"
+                 "  -i, --indicators-only  Show symbols only in output (no counts)\n"
               << Ansi::setFg(Color::bryellow) << "\nOPTIONS:\n"
               << Ansi::reset()
-              << "  -v, --verbose <n>      Log verbosity [1-9]; (default: 9)\n"
-                 "  -f, --format FORMAT    Tokenized format string for git status\n"
-                 "  --dir DIRECTORY        Git directory, if different from current"
+              << "  -f, --format FORMAT    Tokenized format string for git status\n"
+                 "  -d, --dir DIRECTORY    Git directory, if different from current"
               << std::endl;
 }
 
@@ -247,14 +241,13 @@ printHelpEpilog()
 void
 processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
 {
-    const char* const short_opts = ":dv::f:qhVisn";
+    const char* const short_opts = ":d:f:qhVvisn";
     const option long_opts[] = {
-        {"dir", required_argument, nullptr, 2},  {"verbose", optional_argument, nullptr, 'v'},
-        {"debug", no_argument, nullptr, 'd'},    {"format", required_argument, nullptr, 'f'},
-        {"help", no_argument, nullptr, 1},       {"version", no_argument, nullptr, 'V'},
-        {"quiet", no_argument, nullptr, 'q'},    {"indicators-only", no_argument, nullptr, 'i'},
-        {"no-color", no_argument, nullptr, 'n'}, {"simple", no_argument, nullptr, 's'},
-        {nullptr, no_argument, nullptr, 0}};
+        {"dir", required_argument, nullptr, 'd'},       {"verbose", no_argument, nullptr, 'v'},
+        {"format", required_argument, nullptr, 'f'},    {"help", no_argument, nullptr, 1},
+        {"version", no_argument, nullptr, 'V'},         {"quiet", no_argument, nullptr, 'q'},
+        {"indicators-only", no_argument, nullptr, 'i'}, {"no-color", no_argument, nullptr, 'n'},
+        {"simple", no_argument, nullptr, 's'},          {nullptr, no_argument, nullptr, 0}};
 
     while (true) {
         const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
@@ -269,18 +262,11 @@ processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
             opts->debug_print = true;
             break;
         case 'v':
-            if (optarg != NULL) {
-                // el::Loggers::setVerboseLevel(std::atoi(optarg));
-                loguru::g_stderr_verbosity = std::atoi(optarg);
-            } else {
-                // el::Loggers::setVerboseLevel(9);
-                loguru::g_stderr_verbosity = 0;
-            }
-            // LOG(INFO) << "processArgs: Verbosity set to: " << el::Loggers::verboseLevel();
+            ++opts->verbosity;
             break;
         case 'V':
-            std::cerr << Ansi::setBg(Color::green) << argv[0] << Ansi::reset() << " " << VERSION
-                      << "\n";
+            std::cerr << Ansi::setBg(Color::green) << argv[0] << Ansi::reset() << " "
+                      << PACKAGE_VERSION << "\n";
             exit(1);
         case 'i':
             opts->indicators_only = true;
@@ -299,7 +285,7 @@ processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
             opts->debug_quiet = true;
             opts->debug_print = false;
             // el::Loggers::setVerboseLevel(0);
-            loguru::g_stderr_verbosity = loguru::NamedVerbosity::Verbosity_OFF;
+            // loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
             break;
         // Long-only opts (by number instead of char flag)
         case 1:
@@ -312,11 +298,11 @@ processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
             break;
         case '?':
             // TODO: does not print if not a char; figure out how to parse any values
-            LOG_S(ERROR) << "Parsing error: unknown opt '" << (char)optopt << "'\n";
+            VLOG(ERROR) << "Parsing error: unknown opt '" << (char)optopt << "'\n";
             printShortHelp();
             exit(1);
         case ':':
-            LOG_S(ERROR) << "Parsing error: missing arg for '" << (char)optopt << "'\n";
+            VLOG(ERROR) << "Parsing error: missing arg for '" << (char)optopt << "'\n";
             printShortHelp();
             exit(1);
         default:
@@ -332,10 +318,12 @@ main(int argc, char* argv[])
 {
     std::shared_ptr<Options> opts = std::make_shared<Options>();
 
+#ifdef EASYLOGGINGPP_H
     // Logger init
-    // el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
-    // el::Logger* console = el::Loggers::getLogger("default");
-    // console->enabled(el::Level::Warning); // This doesn't seem to work as expected
+    el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
+    el::Logger* console = el::Loggers::getLogger("default");
+    console->enabled(el::Level::Warning); // This doesn't seem to work as expected
+#endif
 
     // TODO: remove test argv+argc after testing
     std::vector<std::string> arguments(argv, argv + argc);
@@ -346,18 +334,23 @@ main(int argc, char* argv[])
                    [](std::string& s) -> char* { return s.data(); });
 
     processArgs(arguments.size(), args, opts);
-    loguru::g_stderr_verbosity = loguru::Verbosity_INFO;
+
+#ifdef LOGURU_HAS_DECLARED_FORMAT_HEADER
+    // init loguru
+    loguru::g_flush_interval_ms = 100;
+    loguru::g_preamble_thread = false;
+    // loguru::g_stderr_verbosity = loguru::Verbosity_INFO;
     loguru::init(argc, argv, nullptr);
-    LOG_F(INFO, "Doing some stuff...");
+#endif
 
     // log raw cli arguments
-    // if (VLOG_IS_ON(2)) {
-    //     LOG_S(INFO) << "Command Line Arguments:";
-    //     LOG_S(INFO) << "Arg count (argc): " << argc;
-    //     for (size_t i = 0; i < arguments.size(); i++) {
-    //         LOG_S(INFO) << "Arg " << i << ": " << args[i];
-    //     }
-    // }
+    if (VLOG_IS_ON(INFO)) {
+        VLOG(INFO) << "Command Line Arguments:";
+        VLOG(INFO) << "Arg count (argc): " << argc;
+        for (size_t i = 0; i < arguments.size(); i++) {
+            VLOG(INFO) << "Arg " << i << ": " << args[i];
+        }
+    }
     delete[] args;
 
     // TODO: check if in git repo
@@ -391,18 +384,18 @@ main(int argc, char* argv[])
 
     // call git diff only if there are unstaged changes
     if (opts->show_diff == 1 && ri->Unstaged->hasChanged()) {
-        LOG_S(INFO) << "Repo is dirty; running git diff for numstat";
+        VLOG(INFO) << "Repo is dirty; running git diff for numstat";
         std::unique_ptr<result_t> git_diff = run("git diff --shortstat");
         std::vector<std::string> diff_lines = split(git_diff->stdout, '\n');
         for (size_t i = 0; i < diff_lines.size(); i++) {
             ri->parseGitDiff(diff_lines[i]);
         }
     } else {
-        LOG_S(INFO) << "Repo is not dirty; git diff not called";
+        VLOG(INFO) << "Repo is not dirty; git diff not called";
     }
 
-    LOG_S(INFO) << ri;
-    LOG_S(INFO) << opts;
+    VLOG(INFO) << ri;
+    VLOG(INFO) << opts;
 
     std::cout << printOutput(opts, ri) << std::endl;
 }

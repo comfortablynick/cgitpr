@@ -9,12 +9,13 @@ class Options
         show_branch_glyph, show_commit, show_diff, show_remote, show_stashed, show_staged_modified,
         show_unstaged_modified, show_untracked, show_vcs, no_color, simple_mode;
     std::string format, dir;
+    int verbosity;
     Options()
         : debug_print(false), debug_quiet(false), indicators_only(false), show_ahead_behind(false),
           show_branch(false), show_branch_glyph(false), show_commit(false), show_diff(false),
           show_remote(false), show_stashed(false), show_staged_modified(false),
           show_unstaged_modified(false), show_untracked(false), show_vcs(false), no_color(false),
-          simple_mode(false), format("%g %b@%c %a %m %d %s %u %t"), dir(".")
+          simple_mode(false), format("%g %b@%c %a %m %d %s %u %t"), dir("."), verbosity(0)
     {}
 
     friend std::ostream& operator<<(std::ostream& out, Options* obj)
@@ -38,6 +39,7 @@ class Options
         out << "  Indicators only: " << obj->indicators_only << '\n';
         out << "  Format: " << obj->format << '\n';
         out << "  Dir: " << obj->dir << '\n';
+        out << "  Verbosity: " << obj->verbosity << '\n';
         return out;
     }
 };

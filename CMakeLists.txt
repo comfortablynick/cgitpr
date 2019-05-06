@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(cgitpr)
+project(cgitpr
+        VERSION "0.0.1"
+        DESCRIPTION "Git status for your shell prompt"
+        HOMEPAGE_URL "github.com/comfortablynick/cgitpr"
+        LANGUAGES CXX)
 
 # print cmake/system details
 message(STATUS "CMake version:    ${CMAKE_SYSTEM_VERSION}")
@@ -13,24 +17,24 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_SHARED_LIBS ON)
 
-# include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake) conan_basic_setup()
+set(USING_LOGURU 1)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(compiler_check)
 include(build_safeguards)
 
 # find dependencies
-find_package(loguru)
-message(STATUS "PACKAGE loguru source dir: ${loguru_SOURCE_DIR}")
-message(STATUS "PACKAGE loguru binary dir: ${loguru_BINARY_DIR}")
-include_directories("${loguru_SOURCE_DIR}")
-add_library(loguru STATIC ${loguru_SOURCE_DIR}/loguru.cpp
-                          ${loguru_SOURCE_DIR}/loguru.hpp)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wextra")
-set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -pthread -lpthread -ldl -Wno-unused-variable")
-message(STATUS "CXX Flags: ${CMAKE_CXX_FLAGS}")
+if(USING_LOGURU)
+  find_package(loguru)
+  include_directories("${loguru_SOURCE_DIR}")
+  add_library(loguru STATIC ${loguru_SOURCE_DIR}/loguru.cpp
+                            ${loguru_SOURCE_DIR}/loguru.hpp)
+  target_link_options(loguru
+                      PUBLIC
+                      -pthread
+                      -lpthread
+                      -ldl)
+endif()
 
 set(SOURCE_FILES
     src/Main.cc
@@ -40,11 +44,21 @@ set(SOURCE_FILES
     src/Utils.cc
     src/Utils.h)
 
+# configure
+message(STATUS "Running configure")
+include(cmake/configure.cmake)
+configure_file("${PROJECT_SOURCE_DIR}/cmake/config_h.cmake"
+               "${PROJECT_SOURCE_DIR}/config.h" @ONLY)
+message(STATUS "Running configure - done")
+
 # MAIN_PROJECT_NAME allows us to use a name different from the project
-set(MAIN_TARGET_NAME ${PROJECT_NAME})
-add_definitions(-DLOGURU_WITH_STREAMS=1)
+set(MAIN_TARGET_NAME cgitpr)
 add_executable(${MAIN_TARGET_NAME} ${SOURCE_FILES})
-target_link_libraries(${MAIN_TARGET_NAME} loguru) # ${CONAN_LIBS}
+if(USING_LOGURU)
+  target_link_libraries(${MAIN_TARGET_NAME} loguru) # ${CONAN_LIBS}
+  set_target_properties(${MAIN_PROJECT_NAME}
+                        PROPERTIES COMPILE_OPTIONS -pedantic -Wall -Wextra)
+endif()
 
 # check include-what-you-use
 include(iwyu)

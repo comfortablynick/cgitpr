@@ -9,6 +9,15 @@
 #include <string_view>
 #include <vector>
 
+#ifndef VLOG_IS_ON
+#define VLOG_IS_ON(verbosity)                                                                      \
+    ((loguru::Verbosity_##verbosity) <= loguru::current_verbosity_cutoff())
+#endif
+
+#ifndef VLOG
+#define VLOG LOG_S
+#endif
+
 template <typename... Args>
 std::string
 fmt(const std::string& format, Args... args)

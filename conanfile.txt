@@ -1,5 +1,0 @@
-[requires]
-easyloggingpp/9.96.5@zimmerk/stable
-
-[generators]
-cmake
