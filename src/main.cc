@@ -1,9 +1,7 @@
 #include "../config.h"
-#include "Options.h"
-#include "Repo.h"
-#include "Utils.h"
+#include "common.h"
 #include "loguru.hpp"
-#include <algorithm>
+#include "repo.h"
 #include <bits/getopt_core.h>
 #include <cstdlib>
 #include <ext/alloc_traits.h>
@@ -14,6 +12,10 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+#ifndef LOG_IS_ON
+#define LOG_IS_ON(verbosity) ((loguru::Verbosity_##verbosity) <= loguru::current_verbosity_cutoff())
+#endif
 
 // Simple prompt emulating default bash prompt that
 // ships with git.
@@ -31,11 +33,11 @@ simplePrompt()
         exit(EXIT_FAILURE);
     }
     auto lines = split(git_status->stdout, "\n");
-    VLOG(INFO) << "Git status lines: " << lines;
+    LOG_S(INFO) << "Git status lines: " << lines;
     auto words = split(lines[0], " ");
 
     for (size_t i = 0; i < words.size(); i++) {
-        VLOG(INFO) << "Word: '" << words[i] << "'";
+        LOG_S(INFO) << "Word: '" << words[i] << "'";
         if (words[i] == "##") {
             i++;
             branch = split(words[i], "...")[0];
@@ -47,14 +49,14 @@ simplePrompt()
             ahead = true;
         }
     }
-    VLOG(INFO) << "HEAD: " << read_first_line(".git/HEAD");
-    VLOG(INFO) << "Ahead: " << ahead << "; Behind: " << behind;
+    LOG_S(INFO) << "HEAD: " << read_first_line(".git/HEAD");
+    LOG_S(INFO) << "Ahead: " << ahead << "; Behind: " << behind;
 
     std::vector<std::string> dirty_cmd(5);
     dirty_cmd = {"git", "diff", "--no-ext-diff", "--quiet", " --exit-code"};
     std::unique_ptr<result_t> dirty_result = ex(dirty_cmd);
 
-    VLOG(INFO) << "`git diff --exit-code` command result: " << dirty_result->status;
+    LOG_S(INFO) << "`git diff --exit-code` command result: " << dirty_result->status;
     dirty = dirty_result->status == 0 ? false : true;
 
     ss << Ansi::setFg(Color::cyan) << "(" << branch << ")";
@@ -266,7 +268,7 @@ processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
             break;
         case 'V':
             std::cerr << Ansi::setBg(Color::green) << argv[0] << Ansi::reset() << " "
-                      << PACKAGE_VERSION << "\n";
+                      << PACKAGE_VERSION << '\n';
             exit(1);
         case 'i':
             opts->indicators_only = true;
@@ -284,7 +286,6 @@ processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
         case 'q':
             opts->debug_quiet = true;
             opts->debug_print = false;
-            // el::Loggers::setVerboseLevel(0);
             // loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
             break;
         // Long-only opts (by number instead of char flag)
@@ -298,11 +299,11 @@ processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
             break;
         case '?':
             // TODO: does not print if not a char; figure out how to parse any values
-            VLOG(ERROR) << "Parsing error: unknown opt '" << (char)optopt << "'\n";
+            LOG_S(ERROR) << "Parsing error: unknown opt '" << (char)optopt << "'\n";
             printShortHelp();
             exit(1);
         case ':':
-            VLOG(ERROR) << "Parsing error: missing arg for '" << (char)optopt << "'\n";
+            LOG_S(ERROR) << "Parsing error: missing arg for '" << (char)optopt << "'\n";
             printShortHelp();
             exit(1);
         default:
@@ -318,40 +319,24 @@ main(int argc, char* argv[])
 {
     std::shared_ptr<Options> opts = std::make_shared<Options>();
 
-#ifdef EASYLOGGINGPP_H
-    // Logger init
-    el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
-    el::Logger* console = el::Loggers::getLogger("default");
-    console->enabled(el::Level::Warning); // This doesn't seem to work as expected
-#endif
-
-    // TODO: remove test argv+argc after testing
+    // Manipulate arguments if needed
     std::vector<std::string> arguments(argv, argv + argc);
-    // if (arguments.size() == 1) arguments.push_back("-v");
+    // arguments.push_back("-v");
 
-    char** args = new char*[arguments.size() + 1];
-    std::transform(arguments.begin(), arguments.end(), &args[0],
-                   [](std::string& s) -> char* { return s.data(); });
+    std::vector<char*> args;
+    for (auto& str : arguments) {
+        args.push_back(&str.front());
+    }
+    int arg_ct = args.size();
+    processArgs(arg_ct, args.data(), opts);
 
-    processArgs(arguments.size(), args, opts);
-
-#ifdef LOGURU_HAS_DECLARED_FORMAT_HEADER
     // init loguru
     loguru::g_flush_interval_ms = 100;
     loguru::g_preamble_thread = false;
+    loguru::g_preamble_date = false;
+    loguru::g_preamble_time = false;
     // loguru::g_stderr_verbosity = loguru::Verbosity_INFO;
-    loguru::init(argc, argv, nullptr);
-#endif
-
-    // log raw cli arguments
-    if (VLOG_IS_ON(INFO)) {
-        VLOG(INFO) << "Command Line Arguments:";
-        VLOG(INFO) << "Arg count (argc): " << argc;
-        for (size_t i = 0; i < arguments.size(); i++) {
-            VLOG(INFO) << "Arg " << i << ": " << args[i];
-        }
-    }
-    delete[] args;
+    loguru::init(arg_ct, args.data(), nullptr);
 
     // TODO: check if in git repo
     CHECK_F(opts->format != "");
@@ -384,18 +369,18 @@ main(int argc, char* argv[])
 
     // call git diff only if there are unstaged changes
     if (opts->show_diff == 1 && ri->Unstaged->hasChanged()) {
-        VLOG(INFO) << "Repo is dirty; running git diff for numstat";
+        LOG_S(INFO) << "Repo is dirty; running git diff for numstat";
         std::unique_ptr<result_t> git_diff = run("git diff --shortstat");
         std::vector<std::string> diff_lines = split(git_diff->stdout, '\n');
         for (size_t i = 0; i < diff_lines.size(); i++) {
             ri->parseGitDiff(diff_lines[i]);
         }
     } else {
-        VLOG(INFO) << "Repo is not dirty; git diff not called";
+        LOG_S(INFO) << "Repo is not dirty; git diff not called";
     }
 
-    VLOG(INFO) << ri;
-    VLOG(INFO) << opts;
+    LOG_S(INFO) << ri;
+    LOG_S(INFO) << opts;
 
     std::cout << printOutput(opts, ri) << std::endl;
 }

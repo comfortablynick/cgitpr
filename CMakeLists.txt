@@ -37,12 +37,11 @@ if(USING_LOGURU)
 endif()
 
 set(SOURCE_FILES
-    src/Main.cc
-    src/Options.h
-    src/Repo.cc
-    src/Repo.h
-    src/Utils.cc
-    src/Utils.h)
+    src/main.cc
+    src/repo.cc
+    src/repo.h
+    src/common.cc
+    src/common.h)
 
 # configure
 message(STATUS "Running configure")

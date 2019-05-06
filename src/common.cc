@@ -1,7 +1,6 @@
-/** Generic utility functions */
-#include "Utils.h"
+/** Common code for project */
+#include "common.h"
 #include <algorithm>
-// #include <easylogging++.h>
 #include "loguru.hpp"
 #include <errno.h>
 #include <iostream>
