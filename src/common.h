@@ -161,7 +161,7 @@ namespace format_helper {
     }
 
     inline const char* cast(const std::string& v) { return v.c_str(); }
-}; // namespace format_helper
+} // namespace format_helper
 
 // Return a sprintf-style formatted string using C++ methods
 template <typename... Ts>

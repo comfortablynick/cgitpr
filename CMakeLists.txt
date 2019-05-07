@@ -17,7 +17,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_SHARED_LIBS ON)
 
-set(USING_LOGURU 1)
+option(USING_LOGURU "Build Loguru library" ON)
+option(USING_ANYOPTION "Build AnyOption library" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(compiler_check)
@@ -27,13 +28,18 @@ include(build_safeguards)
 if(USING_LOGURU)
   find_package(loguru)
   include_directories("${loguru_SOURCE_DIR}")
-  add_library(loguru STATIC ${loguru_SOURCE_DIR}/loguru.cpp
-                            ${loguru_SOURCE_DIR}/loguru.hpp)
+  add_library(loguru STATIC ${loguru_SOURCE_DIR}/loguru.cpp)
   target_link_options(loguru
                       PUBLIC
                       -pthread
                       -lpthread
                       -ldl)
+endif()
+
+if(USING_ANYOPTION)
+  find_package(anyoption)
+  include_directories("${anyoption_SOURCE_DIR}")
+  add_library(anyoption STATIC ${anyoption_SOURCE_DIR}/anyoption.cpp)
 endif()
 
 set(SOURCE_FILES
@@ -45,22 +51,32 @@ set(SOURCE_FILES
 
 # configure
 message(STATUS "Running configure")
-include(cmake/configure.cmake)
+include(configure)
 configure_file("${PROJECT_SOURCE_DIR}/cmake/config_h.cmake"
                "${PROJECT_SOURCE_DIR}/config.h" @ONLY)
 message(STATUS "Running configure - done")
 
-# MAIN_PROJECT_NAME allows us to use a name different from the project
-set(MAIN_TARGET_NAME cgitpr)
-add_executable(${MAIN_TARGET_NAME} ${SOURCE_FILES})
+# link and build list(LIBS)
+set(LIBS "")
 if(USING_LOGURU)
-  target_link_libraries(${MAIN_TARGET_NAME} loguru) # ${CONAN_LIBS}
-  set_target_properties(${MAIN_PROJECT_NAME}
-                        PROPERTIES COMPILE_OPTIONS -pedantic -Wall -Wextra)
+  # target_link_libraries(${MAIN_TARGET_NAME} loguru)
+  list(APPEND ${LIBS} "loguru")
 endif()
+
+if(USING_ANYOPTION)
+  # target_link_libraries(${MAIN_PROJECT_NAME} anyoption)
+  list(APPEND ${LIBS} "anyoption")
+endif()
+
+add_executable(cgitpr ${SOURCE_FILES})
+
+target_link_libraries(cgitpr loguru anyoption)
+# target_link_libraries(cgitpr ${LIBS})
+
+set_target_properties(cgitpr PROPERTIES COMPILE_OPTIONS -pedantic -Wall -Wextra)
 
 # check include-what-you-use
 include(iwyu)
 
 # install
-install(TARGETS ${MAIN_TARGET_NAME} DESTINATION $ENV{HOME}/bin)
+install(TARGETS cgitpr DESTINATION $ENV{HOME}/bin)

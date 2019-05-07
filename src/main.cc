@@ -1,4 +1,5 @@
 #include "../config.h"
+#include "anyoption.h"
 #include "common.h"
 #include "loguru.hpp"
 #include "repo.h"
@@ -235,6 +236,14 @@ printHelpEpilog()
               << std::endl;
 }
 
+void
+parseArgs(int argc, char** argv, std::shared_ptr<Options> opts)
+{
+    AnyOption* opt = new AnyOption;
+    opt->addUsage("usage: ");
+    delete opt;
+}
+
 // Parse argv with getopt_long and update Options.
 //
 // @param argc Argument count
@@ -243,7 +252,7 @@ printHelpEpilog()
 void
 processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
 {
-    const char* const short_opts = "d:f:v:qhVisn";
+    const char* const short_opts = "d:f:v:qhVistn";
     const option long_opts[] = {{"dir", required_argument, nullptr, 'd'},
                                 {"verbose", required_argument, nullptr, 'v'},
                                 {"format", required_argument, nullptr, 'f'},
