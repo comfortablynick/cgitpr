@@ -1,8 +1,9 @@
 #include "../config.h"
-#include "anyoption.h"
+// #include "anyoption.h"
 #include "common.h"
 #include "loguru.hpp"
 #include "repo.h"
+#include "tclap/CmdLine.h"
 #include <bits/getopt_core.h>
 #include <cstdlib>
 #include <ext/alloc_traits.h>
@@ -236,12 +237,74 @@ printHelpEpilog()
               << std::endl;
 }
 
+// void
+// parseArgs(int argc, char** argv, std::shared_ptr<Options> opts)
+// {
+//     AnyOption* opt = new AnyOption;
+//
+//     // options
+//     opt->setVerbose();         // print warnings about unknown options
+//     opt->autoUsagePrint(true); // print usage for bad options
+//
+//     // set usage/help
+//     opt->addUsage("usage: ");
+//
+//     // set options
+//     opt->setCommandFlag("help", 'h');
+//     opt->setCommandFlag("version", 'V');
+//
+//     // process options
+//     opt->processCommandArgs(argc, argv);
+//     if (opt->getFlag("help") || opt->getFlag('h')) opt->printUsage();
+//     delete opt;
+// }
+
+class CustomHelpOutput : public TCLAP::StdOutput
+{
+  public:
+    // TODO: break this into components for easy printing
+    virtual void usage(TCLAP::CmdLineInterface& c)
+    {
+        // std::cerr << "USAGE: " << PACKAGE_NAME << " [FLAGS] [OPTIONS]\n"
+        //           << PACKAGE_DESCRIPTION << "\n\n";
+        // std::list<TCLAP::Arg*> args = c.getArgList();
+        // for (TCLAP::ArgListIterator it = args.begin(); it != args.end(); it++) {
+        //     spacePrint(std::cerr, (*it)->longID(), 75, 3, 3);
+        //     spacePrint(std::cerr, (*it)->getDescription(), 75, 7, 0);
+        // }
+        printShortHelp();
+        printHelpEpilog();
+    }
+};
+
+// Parse argv with TCLAP and update Options.
+//
+// @param argc Argument count
+// @param argv Command line arguments
+// @param opts Options object
 void
 parseArgs(int argc, char** argv, std::shared_ptr<Options> opts)
 {
-    AnyOption* opt = new AnyOption;
-    opt->addUsage("usage: ");
-    delete opt;
+    using namespace TCLAP;
+    try {
+        CmdLine cmd(PACKAGE_DESCRIPTION, ' ', PACKAGE_VERSION);
+        CustomHelpOutput cho;
+        cmd.setOutput(&cho);
+
+        // add args
+        SwitchArg quiet("q", "quiet", "Silences console debug output.", cmd, false);
+        SwitchArg simple("s", "simple", "Emulates bash git prompt.", cmd, false);
+        ValueArg<std::string> verbose("v", "verbose", "Increases console debug output.", false,
+                                      "-2", "string", cmd);
+
+        // parse args
+        cmd.parse(argc, argv);
+        opts->simple_mode = simple.getValue();
+        opts->debug_quiet = simple.getValue();
+
+    } catch (ArgException& e) {
+        LOG_F(ERROR, "%s for arg %s", e.error(), e.argId());
+    }
 }
 
 // Parse argv with getopt_long and update Options.
@@ -337,7 +400,8 @@ main(int argc, char* argv[])
         args.push_back(&str.front());
     }
     int arg_ct = args.size();
-    processArgs(arg_ct, args.data(), opts);
+    // processArgs(arg_ct, args.data(), opts);
+    parseArgs(arg_ct, args.data(), opts);
 
     std::shared_ptr<termsize> tsize = getTermSize();
 

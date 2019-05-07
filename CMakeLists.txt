@@ -17,30 +17,26 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_SHARED_LIBS ON)
 
-option(USING_LOGURU "Build Loguru library" ON)
-option(USING_ANYOPTION "Build AnyOption library" ON)
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(compiler_check)
 include(build_safeguards)
 
 # find dependencies
-if(USING_LOGURU)
-  find_package(loguru)
-  include_directories("${loguru_SOURCE_DIR}")
-  add_library(loguru STATIC ${loguru_SOURCE_DIR}/loguru.cpp)
-  target_link_options(loguru
-                      PUBLIC
-                      -pthread
-                      -lpthread
-                      -ldl)
-endif()
+find_package(loguru)
+include_directories("${loguru_SOURCE_DIR}")
+add_library(loguru STATIC ${loguru_SOURCE_DIR}/loguru.cpp)
+target_link_options(loguru
+                    PUBLIC
+                    -pthread
+                    -lpthread
+                    -ldl)
 
-if(USING_ANYOPTION)
-  find_package(anyoption)
-  include_directories("${anyoption_SOURCE_DIR}")
-  add_library(anyoption STATIC ${anyoption_SOURCE_DIR}/anyoption.cpp)
-endif()
+# find_package(anyoption) include_directories("${anyoption_SOURCE_DIR}")
+# add_library(anyoption STATIC ${anyoption_SOURCE_DIR}/anyoption.cpp)
+
+find_package(tclap)
+add_library(tclap INTERFACE)
+target_include_directories(tclap INTERFACE "${tclap_SOURCE_DIR}/include")
 
 set(SOURCE_FILES
     src/main.cc
@@ -56,22 +52,9 @@ configure_file("${PROJECT_SOURCE_DIR}/cmake/config_h.cmake"
                "${PROJECT_SOURCE_DIR}/config.h" @ONLY)
 message(STATUS "Running configure - done")
 
-# link and build list(LIBS)
-set(LIBS "")
-if(USING_LOGURU)
-  # target_link_libraries(${MAIN_TARGET_NAME} loguru)
-  list(APPEND ${LIBS} "loguru")
-endif()
-
-if(USING_ANYOPTION)
-  # target_link_libraries(${MAIN_PROJECT_NAME} anyoption)
-  list(APPEND ${LIBS} "anyoption")
-endif()
-
 add_executable(cgitpr ${SOURCE_FILES})
 
-target_link_libraries(cgitpr loguru anyoption)
-# target_link_libraries(cgitpr ${LIBS})
+target_link_libraries(cgitpr PRIVATE loguru tclap)
 
 set_target_properties(cgitpr PROPERTIES COMPILE_OPTIONS -pedantic -Wall -Wextra)
 
