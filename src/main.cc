@@ -51,15 +51,16 @@ const std::string simplePrompt()
     LOG_S(INFO) << "HEAD: " << read_first_line(".git/HEAD");
     LOG_S(INFO) << "Ahead: " << ahead << "; Behind: " << behind;
 
-    std::vector<std::string> dirty_cmd(5);
-    dirty_cmd = {"git", "diff", "--no-ext-diff", "--quiet", " --exit-code"};
-    auto dirty_result = ex(dirty_cmd);
-
-    LOG_S(INFO) << "`git diff --exit-code` command result: " << dirty_result->status;
-    bool dirty = dirty_result->status == 0 ? false : true;
+    // Getting inconsistent results with the below command
+    // std::vector<std::string> dirty_cmd(5);
+    // dirty_cmd = {"git", "diff", "--no-ext-diff", "--quiet", " --exit-code"};
+    // auto dirty_result = ex(dirty_cmd);
+    //
+    // LOG_S(INFO) << "`git diff --exit-code` command result: " << dirty_result->status;
+    // bool dirty = dirty_result->status == 0 ? false : true;
 
     ss << Ansi::setFg(Color::cyan) << "(" << branch << ")";
-    if (dirty) ss << Ansi::setFg(Color::red) << "*";
+    if (lines.size() > 1) ss << Ansi::setFg(Color::red) << "*";
     ss << Ansi::reset();
     return ss.str();
 }

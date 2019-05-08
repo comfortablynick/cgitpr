@@ -161,8 +161,6 @@ const std::string read_first_line(const char* filename)
     file.open(filename);
 
     if (!file) {
-        std::cerr << Ansi::setFg(Color::brred) << "Error opening file: " << Ansi::reset()
-                  << filename << std::endl;
         LOG_S(ERROR) << "Could not open file: " << filename;
     } else {
         std::getline(file, line);
@@ -230,8 +228,8 @@ std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool in
         close(stderr_fds[0]);
     }
 
-    int r;
-    int status;
+    int r = 0;
+    int status = 0;
     do {
         r = waitpid(pid, &status, 0);
     } while (r == -1 && errno == EINTR);
