@@ -11,8 +11,7 @@
 #include <vector>
 
 template <typename... Args>
-std::string
-fmt(const std::string& format, Args... args)
+std::string fmt(const std::string& format, Args... args)
 {
     size_t size = 1 + std::snprintf(nullptr, 0, format.c_str(), args...);
     std::unique_ptr<char[]> buf(new char[size]);
@@ -25,8 +24,7 @@ fmt(const std::string& format, Args... args)
 // @param out Stream to print to
 // @param vec Vector to print
 template <class T>
-std::ostream&
-operator<<(std::ostream& out, const std::vector<T>& vec)
+std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec)
 {
     out << '[';
     for (size_t i = 0; i < vec.size(); ++i) {
@@ -41,8 +39,7 @@ operator<<(std::ostream& out, const std::vector<T>& vec)
 // For simple debug print, use << operator on vector directly.
 // @param vec Vector of <T> type
 template <class T>
-std::string
-prettify(const std::vector<T>& vec)
+std::string prettify(const std::vector<T>& vec)
 {
     std::ostringstream out;
     out << "[\n";
@@ -62,18 +59,12 @@ struct result_t
 };
 
 
-std::string
-prettify(const char*[]);
-std::unique_ptr<result_t>
-run(const char*);
-int
-exec(const char*, const char* const[]);
-std::vector<std::string>
-split(const std::string&, char);
-std::vector<std::string_view>
-split(const std::string_view, std::string_view);
-std::unique_ptr<result_t>
-ex(const std::vector<std::string>&, const bool = false);
+std::string prettify(const char*[]);
+std::unique_ptr<result_t> run(const char*);
+int exec(const char*, const char* const[]);
+std::vector<std::string> split(const std::string&, char);
+std::vector<std::string_view> split(const std::string_view, std::string_view);
+std::unique_ptr<result_t> ex(const std::vector<std::string>&, const bool = false);
 
 // Value on the Ansi 256 color spectrum
 enum class Color : unsigned int
@@ -99,8 +90,7 @@ namespace Ansi {
     std::string setBg(Color);
 } // namespace Ansi
 
-const std::string
-read_first_line(const char*);
+const std::string read_first_line(const char*);
 
 class Options
 {
@@ -108,14 +98,13 @@ class Options
     bool debug_print, debug_quiet, indicators_only, show_ahead_behind, show_branch,
         show_branch_glyph, show_commit, show_diff, show_remote, show_stashed, show_staged_modified,
         show_unstaged_modified, show_untracked, show_vcs, no_color, simple_mode;
-    std::string format, dir;
-    int verbosity;
+    std::string format, dir, verbosity;
     Options()
         : debug_print(false), debug_quiet(false), indicators_only(false), show_ahead_behind(false),
           show_branch(false), show_branch_glyph(false), show_commit(false), show_diff(false),
           show_remote(false), show_stashed(false), show_staged_modified(false),
           show_unstaged_modified(false), show_untracked(false), show_vcs(false), no_color(false),
-          simple_mode(false), format("%g %b@%c %a %m %d %s %u %t"), dir("."), verbosity(-2)
+          simple_mode(false), format("%g %b@%c %a %m %d %s %u %t"), dir("."), verbosity("-2")
     {}
 
     friend std::ostream& operator<<(std::ostream& out, Options* obj)
@@ -149,8 +138,7 @@ struct termsize
     unsigned cols, lines;
 };
 
-std::shared_ptr<termsize>
-getTermSize();
+std::shared_ptr<termsize> getTermSize();
 
 namespace format_helper {
 
@@ -165,8 +153,7 @@ namespace format_helper {
 
 // Return a sprintf-style formatted string using C++ methods
 template <typename... Ts>
-inline std::string
-stringfmt(const std::string& fmt, Ts&&... vs)
+inline std::string stringfmt(const std::string& fmt, Ts&&... vs)
 {
     using namespace format_helper;
     char b;
@@ -181,7 +168,6 @@ stringfmt(const std::string& fmt, Ts&&... vs)
     return result;
 }
 
-const std::string
-vformat(const char* const, ...);
+const std::string vformat(const char* const, ...);
 
 #endif // COMMON_H

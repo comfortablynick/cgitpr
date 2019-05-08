@@ -1,5 +1,5 @@
 #include "../config.h"
-// #include "anyoption.h"
+#include "anyoption.h"
 #include "common.h"
 #include "loguru.hpp"
 #include "repo.h"
@@ -21,8 +21,7 @@
 
 // Simple prompt emulating default bash prompt that
 // ships with git.
-const std::string
-simplePrompt()
+const std::string simplePrompt()
 {
     std::ostringstream ss;
     std::string_view branch;
@@ -38,10 +37,10 @@ simplePrompt()
     LOG_S(1) << "Git status lines: " << lines;
     auto words = split(lines[0], " ");
 
-    for (size_t i = 0; i < words.size(); i++) {
+    for (auto i = 0; i < words.size(); ++i) {
         LOG_S(2) << "Word: '" << words[i] << "'";
         if (words[i] == "##") {
-            i++;
+            ++i;
             branch = split(words[i], "...")[0];
         }
         if (words[i] == "[behind") {
@@ -69,14 +68,13 @@ simplePrompt()
     return ss.str();
 }
 
-const std::string
-printOutput(std::shared_ptr<Options> opts, std::shared_ptr<Repo> ri)
+const std::string printOutput(std::shared_ptr<Options> opts, std::shared_ptr<Repo> ri)
 {
     std::stringstream ss;
     std::string& fmt = opts->format;
     bool ind = opts->indicators_only;
 
-    for (size_t i = 0; i < fmt.length(); ++i) {
+    for (auto i = 0; i < fmt.length(); ++i) {
         if (fmt[i] == '%') {
             ++i;
             switch (fmt[i]) {
@@ -133,12 +131,11 @@ printOutput(std::shared_ptr<Options> opts, std::shared_ptr<Repo> ri)
 // based on user input.
 //
 // @param opts Options object
-int
-parseFmtStr(std::shared_ptr<Options> opts)
+int parseFmtStr(std::shared_ptr<Options> opts)
 {
     std::string& fmt = opts->format;
 
-    for (size_t i = 0; i < fmt.length(); ++i) {
+    for (auto i = 0; i < fmt.length(); ++i) {
         if (fmt[i] == '%') {
             ++i;
             switch (fmt[i]) {
@@ -191,35 +188,32 @@ parseFmtStr(std::shared_ptr<Options> opts)
 /**
  * Output program help text to stderr.
  */
-static void
-printShortHelp()
+static void printShortHelp()
 {
     std::cerr << Ansi::setFg(Color::green) << PACKAGE_STRING << Ansi::reset() << '\n'
               << PACKAGE_DESCRIPTION << '\n'
               << PACKAGE_URL << '\n'
               << Ansi::setFg(Color::bryellow) << "\nUSAGE:\n"
-              << Ansi::setFg(Color::green) << "  cgitpr [FLAGS] [OPTIONS]\n"
+              << Ansi::setFg(Color::green) << "  cgitpr [FLAG]... [OPTION]...\n"
               << Ansi::setFg(Color::bryellow) << "\nFLAGS:\n"
               << Ansi::reset()
               << "  -h, --help             Show short or long help message and exit\n"
                  "  -V, --version          Print version and exit\n"
-                 "  -v, --verbose          Log verbosity; ex: -v, -vv, -vvv\n"
+                 "  -q, --quiet            Silence debug console output (overrides -v)\n"
                  "  -s, --simple           Simple output, similar to default bash git prompt\n"
                  "  -n, --no-color         Disable color in output\n"
-                 "  -q, --quiet            Quiet debug output (overrides -v/-d)\n"
                  "  -i, --indicators-only  Show symbols only in output (no counts)\n"
               << Ansi::setFg(Color::bryellow) << "\nOPTIONS:\n"
               << Ansi::reset()
               << "  -f, --format FORMAT    Tokenized format string for git status\n"
-                 "  -d, --dir DIRECTORY    Git directory, if different from current"
-              << std::endl;
+                 "  -d, --dir DIRECTORY    Git directory, if different from current\n"
+                 "  -v LEVEL               Log verbosity: OFF, ERROR, WARNING, INFO, 0-9\n";
 }
 
 /**
  * Print extra help details to stderr if --help is called.
  */
-static void
-printHelpEpilog()
+static void printHelpEpilog()
 {
     std::cerr << Ansi::setFg(Color::bryellow) << "\nFormat string may contain:\n"
               << Ansi::reset()
@@ -237,27 +231,44 @@ printHelpEpilog()
               << std::endl;
 }
 
-// void
-// parseArgs(int argc, char** argv, std::shared_ptr<Options> opts)
-// {
-//     AnyOption* opt = new AnyOption;
-//
-//     // options
-//     opt->setVerbose();         // print warnings about unknown options
-//     opt->autoUsagePrint(true); // print usage for bad options
-//
-//     // set usage/help
-//     opt->addUsage("usage: ");
-//
-//     // set options
-//     opt->setCommandFlag("help", 'h');
-//     opt->setCommandFlag("version", 'V');
-//
-//     // process options
-//     opt->processCommandArgs(argc, argv);
-//     if (opt->getFlag("help") || opt->getFlag('h')) opt->printUsage();
-//     delete opt;
-// }
+int parseAnyArgs(int argc, char** argv, std::shared_ptr<Options> opts)
+{
+    std::unique_ptr<AnyOption> opt = std::make_unique<AnyOption>();
+
+    // set flags
+    opt->setCommandFlag("help", 'h');
+    opt->setCommandFlag("version", 'V');
+    opt->setCommandFlag("quiet", 'q');
+    opt->setCommandFlag("simple", 's');
+    opt->setCommandFlag("no-color", 'n');
+
+    // set options
+    opt->setCommandOption("format", 'f');
+    opt->setCommandOption('v');
+
+    // parse
+    opt->processCommandArgs(argc, argv);
+
+    if (opt->getFlag("help")) {
+        printShortHelp();
+        printHelpEpilog();
+        return EXIT_FAILURE;
+    }
+    if (opt->getFlag("version")) {
+        std::cerr << PACKAGE_STRING << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // get flags
+    if (opt->getFlag("simple")) opts->simple_mode = true;
+    if (opt->getFlag("no-color")) opts->no_color = true;
+    if (opt->getFlag("quiet")) opts->debug_quiet = true;
+
+    // get options
+    if (opt->getValue('v')) opts->verbosity = opt->getValue('v');
+    if (opt->getValue("format")) opts->format = opt->getValue("format");
+    return EXIT_SUCCESS;
+}
 
 class CustomHelpOutput : public TCLAP::StdOutput
 {
@@ -282,8 +293,7 @@ class CustomHelpOutput : public TCLAP::StdOutput
 // @param argc Argument count
 // @param argv Command line arguments
 // @param opts Options object
-void
-parseArgs(int argc, char** argv, std::shared_ptr<Options> opts)
+void parseArgs(int argc, char** argv, std::shared_ptr<Options> opts)
 {
     using namespace TCLAP;
     try {
@@ -312,8 +322,7 @@ parseArgs(int argc, char** argv, std::shared_ptr<Options> opts)
 // @param argc Argument count
 // @param argv Command line arguments
 // @param opts Options object
-void
-processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
+void processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
 {
     const char* const short_opts = "d:f:v:qhVistn";
     const option long_opts[] = {{"dir", required_argument, nullptr, 'd'},
@@ -383,8 +392,7 @@ processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
 }
 
 // CLI entry point; direct to other funcs based on args.
-int
-main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
     std::shared_ptr<Options> opts = std::make_shared<Options>();
 
@@ -401,7 +409,10 @@ main(int argc, char* argv[])
     }
     int arg_ct = args.size();
     // processArgs(arg_ct, args.data(), opts);
-    parseArgs(arg_ct, args.data(), opts);
+    // parseArgs(arg_ct, args.data(), opts);
+    if (int code = parseAnyArgs(arg_ct, args.data(), opts); code != EXIT_SUCCESS) {
+        return code;
+    }
 
     std::shared_ptr<termsize> tsize = getTermSize();
 
@@ -415,7 +426,7 @@ main(int argc, char* argv[])
             loguru::g_preamble_file = false;
         }
     }
-    if (opts->verbosity <= 0 || opts->debug_quiet) loguru::g_stderr_verbosity = -9;
+    if (opts->verbosity == "-2" || opts->debug_quiet) loguru::g_stderr_verbosity = -9;
     loguru::init(arg_ct, args.data(), "-v");
 
     LOG_F(1, "Term size: %dx%d", tsize->cols, tsize->lines);
@@ -445,7 +456,7 @@ main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
     std::vector<std::string> status_lines = split(git_status->stdout, '\n');
-    for (size_t i = 0; i < status_lines.size(); i++) {
+    for (auto i = 0; i < status_lines.size(); ++i) {
         ri->parseGitStatus(status_lines[i]);
     }
 
@@ -454,7 +465,7 @@ main(int argc, char* argv[])
         LOG_S(INFO) << "Repo is dirty; running git diff for numstat";
         std::unique_ptr<result_t> git_diff = run("git diff --shortstat");
         std::vector<std::string> diff_lines = split(git_diff->stdout, '\n');
-        for (size_t i = 0; i < diff_lines.size(); i++) {
+        for (auto i = 0; i < diff_lines.size(); ++i) {
             ri->parseGitDiff(diff_lines[i]);
         }
     } else {

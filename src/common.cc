@@ -14,8 +14,7 @@
 // String representation of (null-terminated) const char* array.
 //
 // @param argv Array of char pointers
-std::string
-prettify(const char* argv[])
+std::string prettify(const char* argv[])
 {
     std::ostringstream out;
     out << '{';
@@ -33,8 +32,7 @@ prettify(const char* argv[])
 // Run command and get text output (stdout or stderr)
 //
 // @param cmd Command for system to run
-std::unique_ptr<result_t>
-run(const char* cmd)
+std::unique_ptr<result_t> run(const char* cmd)
 {
     std::string data;
     FILE* stream;
@@ -59,8 +57,7 @@ run(const char* cmd)
 }
 
 // One style of execution (not used currently)
-int
-exec(const char* file, const char* const argv[])
+int exec(const char* file, const char* const argv[])
 {
     std::size_t argc = 0;
     std::size_t len = 0;
@@ -88,8 +85,7 @@ exec(const char* file, const char* const argv[])
 //
 // @param str String to split
 // @param delim Character to use as delimter
-std::vector<std::string>
-split(const std::string& str, char delim = ' ')
+std::vector<std::string> split(const std::string& str, char delim = ' ')
 {
     std::vector<std::string> tokens;
     std::string token;
@@ -104,8 +100,7 @@ split(const std::string& str, char delim = ' ')
 //
 // @param str String view to split
 // @param delims Delimiter(s)
-std::vector<std::string_view>
-split(const std::string_view str, std::string_view delims = " ")
+std::vector<std::string_view> split(const std::string_view str, std::string_view delims = " ")
 {
     std::vector<std::string_view> output;
     for (auto first = str.data(), second = str.data(), last = first + str.size();
@@ -158,8 +153,7 @@ namespace Ansi {
 
 // Read first line of file into string
 // @param filename Path of file to read
-const std::string
-read_first_line(const char* filename)
+const std::string read_first_line(const char* filename)
 {
     std::ifstream file;
     std::string line;
@@ -180,8 +174,7 @@ read_first_line(const char* filename)
 //
 // @param args Arguments for command
 // @param inc_stderr Capture stderr output
-std::unique_ptr<result_t>
-ex(const std::vector<std::string>& args, const bool inc_stderr)
+std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool inc_stderr)
 {
     LOG_S(INFO) << "ex() cmd: " << args;
     // stdout
@@ -248,8 +241,7 @@ ex(const std::vector<std::string>& args, const bool inc_stderr)
     return cmd_result;
 }
 
-std::shared_ptr<termsize>
-getTermSize()
+std::shared_ptr<termsize> getTermSize()
 {
     std::shared_ptr<termsize> tsize_t = std::make_shared<termsize>();
 #if defined(TIOCGSIZE)

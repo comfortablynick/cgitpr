@@ -7,8 +7,7 @@
 #include <string>
 #include <vector>
 
-std::ostream&
-operator<<(std::ostream& out, RepoArea* obj)
+std::ostream& operator<<(std::ostream& out, RepoArea* obj)
 {
     out << "  Added: " << obj->added << '\n';
     out << "  Copied: " << obj->copied << '\n';
@@ -19,8 +18,7 @@ operator<<(std::ostream& out, RepoArea* obj)
     return out;
 }
 
-void
-RepoArea::parseModified(const char& ltr)
+void RepoArea::parseModified(const char& ltr)
 {
     // count 'typechange' as a modified file
     if (ltr == 'M' || ltr == 'T') {
@@ -41,14 +39,12 @@ RepoArea::parseModified(const char& ltr)
     }
 }
 
-bool
-RepoArea::hasChanged() const
+bool RepoArea::hasChanged() const
 {
     return this->added + this->copied + this->deleted + this->modified + this->renamed != 0;
 }
 
-std::ostream&
-operator<<(std::ostream& out, Repo* obj)
+std::ostream& operator<<(std::ostream& out, Repo* obj)
 {
     out << "Repo:\n";
     out << "Git Dir: " << obj->gitDir << '\n';
@@ -70,8 +66,7 @@ operator<<(std::ostream& out, Repo* obj)
 }
 
 // Format modified file indicator and count
-const std::string
-RepoArea::formatModified(bool indicators_only) const
+const std::string RepoArea::formatModified(bool indicators_only) const
 {
     std::stringstream ss;
     if (this->hasChanged()) {
@@ -87,8 +82,7 @@ RepoArea::formatModified(bool indicators_only) const
 
 // Parse branch details from `git status` string.
 // @param str Git command output
-void
-Repo::parseBranch(const std::string& str)
+void Repo::parseBranch(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
     if (words[1] == "branch.oid") {
@@ -109,8 +103,7 @@ Repo::parseBranch(const std::string& str)
 
 // Parse modified file details (Unstaged or Staged).
 // @param str Git command output
-void
-Repo::parseTrackedFile(const std::string& str)
+void Repo::parseTrackedFile(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
     Staged->parseModified(words[1][0]);
@@ -119,8 +112,7 @@ Repo::parseTrackedFile(const std::string& str)
 
 // Send `git status` lines to correct function to be parsed.
 // @param str Git command output
-void
-Repo::parseGitStatus(const std::string& str)
+void Repo::parseGitStatus(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
     if (words[0] == "#") {
@@ -139,8 +131,7 @@ Repo::parseGitStatus(const std::string& str)
 
 // Parse `git diff --shortstat` to get inserted/deleted lines
 // @param str Git command output
-void
-Repo::parseGitDiff(const std::string& str)
+void Repo::parseGitDiff(const std::string& str)
 {
     std::vector<std::string> words = split(str, ' ');
     for (size_t i = 0; i < words.size(); i++) {
@@ -151,8 +142,7 @@ Repo::parseGitDiff(const std::string& str)
 
 // Format output of ahead/behind data
 // @param indicators_only Show symbols only, not numbers
-const std::string
-Repo::formatAheadBehind(bool indicators_only) const
+const std::string Repo::formatAheadBehind(bool indicators_only) const
 {
     std::stringstream ss;
     if (this->ahead > 0) {
@@ -171,8 +161,7 @@ Repo::formatAheadBehind(bool indicators_only) const
 }
 
 // Format output of branch
-const std::string
-Repo::formatBranch() const
+const std::string Repo::formatBranch() const
 {
     std::ostringstream ss;
     ss << Ansi::setFg(Color::blue) << this->branch << Ansi::reset();
@@ -181,8 +170,7 @@ Repo::formatBranch() const
 
 // Format commit hash
 // @param string_len Length of commit hash representation
-const std::string
-Repo::formatCommit(size_t str_len) const
+const std::string Repo::formatCommit(size_t str_len) const
 {
     std::stringstream ss;
     ss << Ansi::setBg(Color::green);
@@ -194,8 +182,7 @@ Repo::formatCommit(size_t str_len) const
 
 // Format `diff numstat` details
 // untracked
-const std::string
-Repo::formatDiff() const
+const std::string Repo::formatDiff() const
 {
     std::stringstream ss;
     if (this->insertions > 0) {
@@ -211,8 +198,7 @@ Repo::formatDiff() const
 }
 
 // Format stash count/icon
-const std::string
-Repo::formatStashed(bool indicators_only) const
+const std::string Repo::formatStashed(bool indicators_only) const
 {
     std::stringstream ss;
     if (this->stashed > 0) {
@@ -225,8 +211,7 @@ Repo::formatStashed(bool indicators_only) const
 }
 
 // Format untracked files count/icon
-const std::string
-Repo::formatUntracked(bool indicators_only) const
+const std::string Repo::formatUntracked(bool indicators_only) const
 {
     std::stringstream ss;
     if (this->untracked > 0) {
