@@ -1,13 +1,10 @@
 #include "../config.h"
-#include "anyoption.h"
 #include "common.h"
 #include "loguru.hpp"
 #include "repo.h"
 #include "tclap/CmdLine.h"
-#include <bits/getopt_core.h>
 #include <cstdlib>
 #include <ext/alloc_traits.h>
-#include <getopt.h>
 #include <iostream>
 #include <memory>
 #include <stdio.h>
@@ -25,10 +22,9 @@ const std::string simplePrompt()
 {
     std::ostringstream ss;
     std::string_view branch;
-    bool dirty, ahead, behind = false;
     std::vector<std::string> status_cmd(5);
     status_cmd = {"git", "status", "--porcelain", "--branch", "--untracked-files=no"};
-    std::unique_ptr<result_t> git_status = ex(status_cmd, true);
+    auto git_status = ex(status_cmd, true);
     if (git_status->status != 0) {
         std::cerr << Ansi::setFg(Color::brred) << git_status->stdout << Ansi::reset();
         exit(EXIT_FAILURE);
@@ -37,6 +33,8 @@ const std::string simplePrompt()
     LOG_S(1) << "Git status lines: " << lines;
     auto words = split(lines[0], " ");
 
+    bool ahead = false;
+    bool behind = false;
     for (auto i = 0; i < words.size(); ++i) {
         LOG_S(2) << "Word: '" << words[i] << "'";
         if (words[i] == "##") {
@@ -55,15 +53,13 @@ const std::string simplePrompt()
 
     std::vector<std::string> dirty_cmd(5);
     dirty_cmd = {"git", "diff", "--no-ext-diff", "--quiet", " --exit-code"};
-    std::unique_ptr<result_t> dirty_result = ex(dirty_cmd);
+    auto dirty_result = ex(dirty_cmd);
 
     LOG_S(INFO) << "`git diff --exit-code` command result: " << dirty_result->status;
-    dirty = dirty_result->status == 0 ? false : true;
+    bool dirty = dirty_result->status == 0 ? false : true;
 
     ss << Ansi::setFg(Color::cyan) << "(" << branch << ")";
-    if (dirty) {
-        ss << Ansi::setFg(Color::red) << "*";
-    }
+    if (dirty) ss << Ansi::setFg(Color::red) << "*";
     ss << Ansi::reset();
     return ss.str();
 }
@@ -71,8 +67,8 @@ const std::string simplePrompt()
 const std::string printOutput(std::shared_ptr<Options> opts, std::shared_ptr<Repo> ri)
 {
     std::stringstream ss;
-    std::string& fmt = opts->format;
-    bool ind = opts->indicators_only;
+    const std::string& fmt = opts->format;
+    auto ind = opts->indicators_only;
 
     for (auto i = 0; i < fmt.length(); ++i) {
         if (fmt[i] == '%') {
@@ -133,7 +129,7 @@ const std::string printOutput(std::shared_ptr<Options> opts, std::shared_ptr<Rep
 // @param opts Options object
 int parseFmtStr(std::shared_ptr<Options> opts)
 {
-    std::string& fmt = opts->format;
+    const std::string& fmt = opts->format;
 
     for (auto i = 0; i < fmt.length(); ++i) {
         if (fmt[i] == '%') {
@@ -231,44 +227,6 @@ static void printHelpEpilog()
               << std::endl;
 }
 
-int parseAnyArgs(int argc, char** argv, std::shared_ptr<Options> opts)
-{
-    std::unique_ptr<AnyOption> opt = std::make_unique<AnyOption>();
-
-    // set flags
-    opt->setCommandFlag("help", 'h');
-    opt->setCommandFlag("version", 'V');
-    opt->setCommandFlag("quiet", 'q');
-    opt->setCommandFlag("simple", 's');
-    opt->setCommandFlag("no-color", 'n');
-
-    // set options
-    opt->setCommandOption("format", 'f');
-    opt->setCommandOption('v');
-
-    // parse
-    opt->processCommandArgs(argc, argv);
-
-    if (opt->getFlag("help")) {
-        printShortHelp();
-        printHelpEpilog();
-        return EXIT_FAILURE;
-    }
-    if (opt->getFlag("version")) {
-        std::cerr << PACKAGE_STRING << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    // get flags
-    if (opt->getFlag("simple")) opts->simple_mode = true;
-    if (opt->getFlag("no-color")) opts->no_color = true;
-    if (opt->getFlag("quiet")) opts->debug_quiet = true;
-
-    // get options
-    if (opt->getValue('v')) opts->verbosity = opt->getValue('v');
-    if (opt->getValue("format")) opts->format = opt->getValue("format");
-    return EXIT_SUCCESS;
-}
 
 class CustomHelpOutput : public TCLAP::StdOutput
 {
@@ -304,13 +262,17 @@ void parseArgs(int argc, char** argv, std::shared_ptr<Options> opts)
         // add args
         SwitchArg quiet("q", "quiet", "Silences console debug output.", cmd, false);
         SwitchArg simple("s", "simple", "Emulates bash git prompt.", cmd, false);
-        ValueArg<std::string> verbose("v", "verbose", "Increases console debug output.", false,
-                                      "-2", "string", cmd);
+        ValueArg<std::string> verbosity("v", "", "Increases console debug output.", false, "-2",
+                                        "string", cmd);
+        ValueArg<std::string> format("f", "format", "Tokenized format string for git status", false,
+                                     opts->format, "string", cmd);
 
         // parse args
         cmd.parse(argc, argv);
+        opts->verbosity = verbosity.getValue();
         opts->simple_mode = simple.getValue();
-        opts->debug_quiet = simple.getValue();
+        opts->debug_quiet = quiet.getValue();
+        opts->format = format.getValue();
 
     } catch (ArgException& e) {
         LOG_F(ERROR, "%s for arg %s", e.error(), e.argId());
@@ -322,79 +284,79 @@ void parseArgs(int argc, char** argv, std::shared_ptr<Options> opts)
 // @param argc Argument count
 // @param argv Command line arguments
 // @param opts Options object
-void processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
-{
-    const char* const short_opts = "d:f:v:qhVistn";
-    const option long_opts[] = {{"dir", required_argument, nullptr, 'd'},
-                                {"verbose", required_argument, nullptr, 'v'},
-                                {"format", required_argument, nullptr, 'f'},
-                                {"help", no_argument, nullptr, 1},
-                                {"version", no_argument, nullptr, 'V'},
-                                {"quiet", no_argument, nullptr, 'q'},
-                                {"indicators-only", no_argument, nullptr, 'i'},
-                                {"no-color", no_argument, nullptr, 'n'},
-                                {"simple", no_argument, nullptr, 's'},
-                                {nullptr, no_argument, nullptr, 0}};
-
-    for (;;) {
-        const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
-        if (opt == -1) break;
-        switch (opt) {
-        // Short and short/long opts
-        case 'h':
-            printShortHelp();
-            exit(1);
-            break;
-        case 'd':
-            opts->debug_print = true;
-            break;
-        case 'v':
-            break;
-        case 'V':
-            std::cerr << Ansi::setBg(Color::green) << argv[0] << Ansi::reset() << " "
-                      << PACKAGE_VERSION << '\n';
-            exit(1);
-        case 'i':
-            opts->indicators_only = true;
-            break;
-        case 'n':
-            opts->no_color = true;
-            setenv("TERM", "dumb", 1);
-            break;
-        case 's':
-            opts->simple_mode = true;
-            break;
-        case 'f':
-            opts->format = std::string(optarg);
-            break;
-        case 'q':
-            opts->debug_quiet = true;
-            opts->debug_print = false;
-            loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
-            break;
-        // Long-only opts (by number instead of char flag)
-        case 1:
-            printShortHelp();
-            printHelpEpilog();
-            exit(1);
-            break;
-        case 2:
-            opts->dir = std::string(optarg);
-            break;
-        case '?':
-        case ':':
-            exit(1);
-        default:
-            printShortHelp();
-            exit(1);
-        }
-    }
-}
+// void processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
+// {
+//     const char* const short_opts = "d:f:v:qhVistn";
+//     const option long_opts[] = {{"dir", required_argument, nullptr, 'd'},
+//                                 {"verbose", required_argument, nullptr, 'v'},
+//                                 {"format", required_argument, nullptr, 'f'},
+//                                 {"help", no_argument, nullptr, 1},
+//                                 {"version", no_argument, nullptr, 'V'},
+//                                 {"quiet", no_argument, nullptr, 'q'},
+//                                 {"indicators-only", no_argument, nullptr, 'i'},
+//                                 {"no-color", no_argument, nullptr, 'n'},
+//                                 {"simple", no_argument, nullptr, 's'},
+//                                 {nullptr, no_argument, nullptr, 0}};
+//
+//     for (;;) {
+//         const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
+//         if (opt == -1) break;
+//         switch (opt) {
+//         // Short and short/long opts
+//         case 'h':
+//             printShortHelp();
+//             exit(1);
+//             break;
+//         case 'd':
+//             opts->debug_print = true;
+//             break;
+//         case 'v':
+//             break;
+//         case 'V':
+//             std::cerr << Ansi::setBg(Color::green) << argv[0] << Ansi::reset() << " "
+//                       << PACKAGE_VERSION << '\n';
+//             exit(1);
+//         case 'i':
+//             opts->indicators_only = true;
+//             break;
+//         case 'n':
+//             opts->no_color = true;
+//             setenv("TERM", "dumb", 1);
+//             break;
+//         case 's':
+//             opts->simple_mode = true;
+//             break;
+//         case 'f':
+//             opts->format = std::string(optarg);
+//             break;
+//         case 'q':
+//             opts->debug_quiet = true;
+//             opts->debug_print = false;
+//             loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
+//             break;
+//         // Long-only opts (by number instead of char flag)
+//         case 1:
+//             printShortHelp();
+//             printHelpEpilog();
+//             exit(1);
+//             break;
+//         case 2:
+//             opts->dir = std::string(optarg);
+//             break;
+//         case '?':
+//         case ':':
+//             exit(1);
+//         default:
+//             printShortHelp();
+//             exit(1);
+//         }
+//     }
+// }
 
 // CLI entry point; direct to other funcs based on args.
 int main(int argc, char* argv[])
 {
-    std::shared_ptr<Options> opts = std::make_shared<Options>();
+    auto opts = std::make_shared<Options>();
 
     // Manipulate arguments if needed
     std::vector<std::string> arguments(argv, argv + argc);
@@ -408,13 +370,9 @@ int main(int argc, char* argv[])
         args.push_back(&str.front());
     }
     int arg_ct = args.size();
-    // processArgs(arg_ct, args.data(), opts);
-    // parseArgs(arg_ct, args.data(), opts);
-    if (int code = parseAnyArgs(arg_ct, args.data(), opts); code != EXIT_SUCCESS) {
-        return code;
-    }
+    parseArgs(arg_ct, args.data(), opts);
 
-    std::shared_ptr<termsize> tsize = getTermSize();
+    auto tsize = getTermSize();
 
     // init loguru
     loguru::g_flush_interval_ms = 100;
@@ -439,37 +397,38 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    std::shared_ptr<Repo> ri = std::make_shared<Repo>();
+    auto ri = std::make_shared<Repo>();
 
     if (parseFmtStr(opts) == 1) return 1;
     std::vector<std::string> status_args(5);
     status_args = {"git", "status", "--porcelain=2", "--branch", "--untracked-files=no"};
 
     if (opts->show_untracked == 1) {
-        status_args[4] = "--untracked-files=all";
         // normal: show untracked files and dirs
         // all:    show individual files within dirs
+        // no:     skip showing untracked files (default; faster)
+        status_args[4] = "--untracked-files=all";
     }
 
-    std::unique_ptr<result_t> git_status = ex(status_args);
+    const auto git_status = ex(status_args);
     if (git_status->status != 0) {
         exit(EXIT_FAILURE);
     }
-    std::vector<std::string> status_lines = split(git_status->stdout, '\n');
-    for (auto i = 0; i < status_lines.size(); ++i) {
-        ri->parseGitStatus(status_lines[i]);
+    auto status_lines = split(git_status->stdout, '\n');
+    for (const auto& line : status_lines) {
+        ri->parseGitStatus(line);
     }
 
-    // call git diff only if there are unstaged changes
-    if (opts->show_diff == 1 && ri->Unstaged->hasChanged()) {
-        LOG_S(INFO) << "Repo is dirty; running git diff for numstat";
-        std::unique_ptr<result_t> git_diff = run("git diff --shortstat");
-        std::vector<std::string> diff_lines = split(git_diff->stdout, '\n');
-        for (auto i = 0; i < diff_lines.size(); ++i) {
-            ri->parseGitDiff(diff_lines[i]);
+    if (opts->show_diff && ri->Unstaged->hasChanged()) {
+        // call git diff only if there are unstaged changes
+        LOG_F(INFO, "Repo is dirty; running git diff for numstat");
+        const auto git_diff = run("git diff --shortstat");
+        const auto diff_lines = split(git_diff->stdout, '\n');
+        for (const auto& line : diff_lines) {
+            ri->parseGitDiff(line);
         }
     } else {
-        LOG_S(INFO) << "Repo is not dirty; git diff not called";
+        LOG_F(INFO, "Repo is not dirty; git diff not called");
     }
 
     LOG_S(INFO) << ri;

@@ -19,9 +19,9 @@ std::string prettify(const char* argv[])
     std::ostringstream out;
     out << '{';
 
-    for (size_t i = 0; argv[i]; ++i) {
+    for (auto i = 0; argv[i]; ++i) {
         if (i != 0) out << ", ";
-        const char* ch = argv[i];
+        auto ch = argv[i];
         while (*ch) out << *(ch++);
     }
 
@@ -50,7 +50,7 @@ std::unique_ptr<result_t> run(const char* cmd)
         rtval = pclose(stream);
         LOG_S(INFO) << "Command return val: " << rtval;
     }
-    std::unique_ptr<result_t> output = std::make_unique<result_t>();
+    auto output = std::make_unique<result_t>();
     output->status = rtval;
     output->stdout = data;
     return output;
@@ -90,6 +90,7 @@ std::vector<std::string> split(const std::string& str, char delim = ' ')
     std::vector<std::string> tokens;
     std::string token;
     std::istringstream tokenStream(str);
+
     while (std::getline(tokenStream, token, delim)) {
         tokens.push_back(token);
     }
@@ -115,9 +116,9 @@ namespace Ansi {
     // Set foreground color
     //
     // @param color Color from Ansi::Color enum
-    std::string setFg(Color color)
+    const std::string setFg(Color color)
     {
-        const char* env_term = getenv("TERM");
+        const auto env_term = getenv("TERM");
         if (env_term == nullptr || strcmp(env_term, "dumb") == 0) {
             return "";
         }
@@ -129,9 +130,9 @@ namespace Ansi {
     // Set background color
     //
     // @param color Color from Ansi::Color enum
-    std::string setBg(Color color)
+    const std::string setBg(Color color)
     {
-        const char* env_term = getenv("TERM");
+        const auto env_term = getenv("TERM");
         if (env_term == nullptr || strcmp(env_term, "dumb") == 0) {
             return "";
         }
@@ -141,9 +142,9 @@ namespace Ansi {
     }
 
     // Reset colors
-    std::string reset()
+    const std::string reset()
     {
-        const char* env_term = getenv("TERM");
+        const auto env_term = getenv("TERM");
         if (env_term == nullptr || strcmp(env_term, "dumb") == 0) {
             return "";
         }
@@ -182,9 +183,7 @@ std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool in
     pipe(stdout_fds);
     // stderr
     int stderr_fds[2];
-    if (!inc_stderr) {
-        pipe(stderr_fds);
-    }
+    if (!inc_stderr) pipe(stderr_fds);
 
     const pid_t pid = fork();
 
@@ -203,7 +202,7 @@ std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool in
             close(stderr_fds[1]);
         }
         std::vector<char*> vc(args.size() + 1, nullptr);
-        for (size_t i = 0; i < args.size(); ++i) {
+        for (auto i = 0; i < args.size(); ++i) {
             vc[i] = const_cast<char*>(args[i].c_str());
         }
         execvp(vc[0], &vc[0]);
@@ -215,7 +214,7 @@ std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool in
     const int buf_size = 4096;
     char buffer[buf_size];
     do {
-        const ssize_t r = read(stdout_fds[0], buffer, buf_size);
+        const auto r = read(stdout_fds[0], buffer, buf_size);
         if (r > 0) {
             out.append(buffer, r);
         }
@@ -231,11 +230,12 @@ std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool in
         close(stderr_fds[0]);
     }
 
-    int r, status;
+    int r;
+    int status;
     do {
         r = waitpid(pid, &status, 0);
     } while (r == -1 && errno == EINTR);
-    std::unique_ptr<result_t> cmd_result = std::make_unique<result_t>();
+    auto cmd_result = std::make_unique<result_t>();
     cmd_result->status = status;
     cmd_result->stdout = out;
     return cmd_result;
@@ -243,7 +243,7 @@ std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool in
 
 std::shared_ptr<termsize> getTermSize()
 {
-    std::shared_ptr<termsize> tsize_t = std::make_shared<termsize>();
+    auto tsize_t = std::make_shared<termsize>();
 #if defined(TIOCGSIZE)
     struct ttysize ts;
     ioctl(STDIN_FILENO, TIOCGSIZE, &ts);

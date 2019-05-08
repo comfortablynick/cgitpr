@@ -85,9 +85,9 @@ enum class Color : unsigned int
 };
 
 namespace Ansi {
-    std::string reset();
-    std::string setFg(Color);
-    std::string setBg(Color);
+    const std::string reset();
+    const std::string setFg(Color);
+    const std::string setBg(Color);
 } // namespace Ansi
 
 const std::string read_first_line(const char*);

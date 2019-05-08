@@ -1,5 +1,5 @@
-#include "repo.h"
 #include "common.h"
+#include "repo.h"
 
 #include <ext/alloc_traits.h>
 #include <iostream>
@@ -9,72 +9,54 @@
 
 std::ostream& operator<<(std::ostream& out, RepoArea* obj)
 {
-    out << "  Added: " << obj->added << '\n';
-    out << "  Copied: " << obj->copied << '\n';
-    out << "  Deleted: " << obj->deleted << '\n';
-    out << "  Modified: " << obj->modified << '\n';
-    out << "  Renamed: " << obj->renamed << '\n';
-    out << "  Dirty: " << obj->hasChanged() << '\n';
+    out << "  Added: " << obj->added << '\n'
+        << "  Copied: " << obj->copied << '\n'
+        << "  Deleted: " << obj->deleted << '\n'
+        << "  Modified: " << obj->modified << '\n'
+        << "  Renamed: " << obj->renamed << '\n'
+        << "  Dirty: " << obj->hasChanged() << '\n';
     return out;
 }
 
 void RepoArea::parseModified(const char& ltr)
 {
     // count 'typechange' as a modified file
-    if (ltr == 'M' || ltr == 'T') {
-        // TODO: possibly add counter for 'typechange'
-        modified++;
-    }
-    if (ltr == 'A') {
-        added++;
-    }
-    if (ltr == 'D') {
-        deleted++;
-    }
-    if (ltr == 'R') {
-        renamed++;
-    }
-    if (ltr == 'C') {
-        copied++;
-    }
+    if (ltr == 'M' || ltr == 'T') ++modified;
+    if (ltr == 'A') ++added;
+    if (ltr == 'D') ++deleted;
+    if (ltr == 'R') ++renamed;
+    if (ltr == 'C') ++copied;
 }
 
-bool RepoArea::hasChanged() const
-{
-    return this->added + this->copied + this->deleted + this->modified + this->renamed != 0;
-}
+bool RepoArea::hasChanged() const { return (added + copied + deleted + modified + renamed) != 0; }
 
 std::ostream& operator<<(std::ostream& out, Repo* obj)
 {
-    out << "Repo:\n";
-    out << "Git Dir: " << obj->gitDir << '\n';
-    out << "Branch: " << obj->branch << '\n';
-    out << "Commit: " << obj->commit << '\n';
-    out << "Upstream: " << obj->upstream << '\n';
-    out << "Stashed: " << obj->stashed << '\n';
-    out << "Ahead: " << obj->ahead << '\n';
-    out << "Behind: " << obj->behind << '\n';
-    out << "Untracked: " << obj->untracked << '\n';
-    out << "Unmerged: " << obj->unmerged << '\n';
-    out << "Insertions: " << obj->insertions << '\n';
-    out << "Deletions: " << obj->deletions << '\n';
-    out << "Staged:\n";
-    out << obj->Staged;
-    out << "Unstaged:\n";
-    out << obj->Unstaged;
+    out << "Repo:\n"
+        << "Git Dir: " << obj->gitDir << '\n'
+        << "Branch: " << obj->branch << '\n'
+        << "Commit: " << obj->commit << '\n'
+        << "Upstream: " << obj->upstream << '\n'
+        << "Stashed: " << obj->stashed << '\n'
+        << "Ahead: " << obj->ahead << '\n'
+        << "Behind: " << obj->behind << '\n'
+        << "Untracked: " << obj->untracked << '\n'
+        << "Unmerged: " << obj->unmerged << '\n'
+        << "Insertions: " << obj->insertions << '\n'
+        << "Deletions: " << obj->deletions << '\n'
+        << "Staged:\n"
+        << obj->Staged << "Unstaged:\n"
+        << obj->Unstaged;
     return out;
 }
 
 // Format modified file indicator and count
 const std::string RepoArea::formatModified(bool indicators_only) const
 {
-    std::stringstream ss;
-    if (this->hasChanged()) {
-        ss << Ansi::setFg(Color::red);
-        ss << this->MODIFIED_GLYPH;
-        if (!indicators_only) {
-            ss << this->modified;
-        }
+    std::ostringstream ss;
+    if (hasChanged()) {
+        ss << Ansi::setFg(Color::red) << MODIFIED_GLYPH;
+        if (!indicators_only) ss << modified;
         ss << Ansi::reset();
     }
     return ss.str();
@@ -84,7 +66,7 @@ const std::string RepoArea::formatModified(bool indicators_only) const
 // @param str Git command output
 void Repo::parseBranch(const std::string& str)
 {
-    std::vector<std::string> words = split(str, ' ');
+    const auto words = split(str, ' ');
     if (words[1] == "branch.oid") {
         commit = words[2];
     }
@@ -105,7 +87,7 @@ void Repo::parseBranch(const std::string& str)
 // @param str Git command output
 void Repo::parseTrackedFile(const std::string& str)
 {
-    std::vector<std::string> words = split(str, ' ');
+    const auto words = split(str, ' ');
     Staged->parseModified(words[1][0]);
     Unstaged->parseModified(words[1][1]);
 }
@@ -114,27 +96,19 @@ void Repo::parseTrackedFile(const std::string& str)
 // @param str Git command output
 void Repo::parseGitStatus(const std::string& str)
 {
-    std::vector<std::string> words = split(str, ' ');
-    if (words[0] == "#") {
-        parseBranch(str);
-    }
-    if (words[0] == "1" || words[0] == "2") {
-        parseTrackedFile(str);
-    }
-    if (words[0] == "u") {
-        unmerged++;
-    }
-    if (words[0] == "?") {
-        untracked++;
-    }
+    auto words = split(str, ' ');
+    if (words[0] == "#") parseBranch(str);
+    if (words[0] == "1" || words[0] == "2") parseTrackedFile(str);
+    if (words[0] == "u") ++unmerged;
+    if (words[0] == "?") ++untracked;
 }
 
 // Parse `git diff --shortstat` to get inserted/deleted lines
 // @param str Git command output
 void Repo::parseGitDiff(const std::string& str)
 {
-    std::vector<std::string> words = split(str, ' ');
-    for (size_t i = 0; i < words.size(); i++) {
+    auto words = split(str, ' ');
+    for (auto i = 0; i < words.size(); ++i) {
         if (words[i].find('+') != std::string::npos) insertions = std::stoi(words[i - 1]);
         if (words[i].find('-') != std::string::npos) deletions = std::stoi(words[i - 1]);
     }
@@ -145,17 +119,13 @@ void Repo::parseGitDiff(const std::string& str)
 const std::string Repo::formatAheadBehind(bool indicators_only) const
 {
     std::stringstream ss;
-    if (this->ahead > 0) {
-        ss << this->AHEAD_GLYPH;
-        if (!indicators_only) {
-            ss << this->ahead;
-        }
+    if (ahead > 0) {
+        ss << AHEAD_GLYPH;
+        if (!indicators_only) ss << ahead;
     }
-    if (this->behind > 0) {
-        ss << this->BEHIND_GLYPH;
-        if (!indicators_only) {
-            ss << this->behind;
-        }
+    if (behind > 0) {
+        ss << BEHIND_GLYPH;
+        if (!indicators_only) ss << behind;
     }
     return ss.str();
 }
@@ -164,7 +134,7 @@ const std::string Repo::formatAheadBehind(bool indicators_only) const
 const std::string Repo::formatBranch() const
 {
     std::ostringstream ss;
-    ss << Ansi::setFg(Color::blue) << this->branch << Ansi::reset();
+    ss << Ansi::setFg(Color::blue) << branch << Ansi::reset();
     return ss.str();
 }
 
@@ -173,10 +143,8 @@ const std::string Repo::formatBranch() const
 const std::string Repo::formatCommit(size_t str_len) const
 {
     std::stringstream ss;
-    ss << Ansi::setBg(Color::green);
-    ss << Ansi::setFg(Color::black);
-    ss << this->commit.substr(0, str_len);
-    ss << Ansi::reset();
+    ss << Ansi::setBg(Color::green) << Ansi::setFg(Color::black) << commit.substr(0, str_len)
+       << Ansi::reset();
     return ss.str();
 }
 
@@ -185,14 +153,14 @@ const std::string Repo::formatCommit(size_t str_len) const
 const std::string Repo::formatDiff() const
 {
     std::stringstream ss;
-    if (this->insertions > 0) {
-        ss << "+" << this->insertions;
-        if (this->deletions > 0) {
-            ss << "/";
+    if (insertions > 0) {
+        ss << '+' << insertions;
+        if (deletions > 0) {
+            ss << '/';
         }
     }
-    if (this->deletions > 0) {
-        ss << "-" << this->deletions;
+    if (deletions > 0) {
+        ss << '-' << deletions;
     }
     return ss.str();
 }
@@ -201,11 +169,9 @@ const std::string Repo::formatDiff() const
 const std::string Repo::formatStashed(bool indicators_only) const
 {
     std::stringstream ss;
-    if (this->stashed > 0) {
-        ss << this->STASH_GLYPH;
-        if (!indicators_only) {
-            ss << this->stashed;
-        }
+    if (stashed > 0) {
+        ss << STASH_GLYPH;
+        if (!indicators_only) ss << stashed;
     }
     return ss.str();
 }
@@ -214,12 +180,9 @@ const std::string Repo::formatStashed(bool indicators_only) const
 const std::string Repo::formatUntracked(bool indicators_only) const
 {
     std::stringstream ss;
-    if (this->untracked > 0) {
-        ss << Ansi::setFg(Color::gray);
-        ss << this->UNTRACKED_GLYPH;
-        if (!indicators_only) {
-            ss << this->untracked;
-        }
+    if (untracked > 0) {
+        ss << Ansi::setFg(Color::gray) << UNTRACKED_GLYPH;
+        if (!indicators_only) ss << untracked;
         ss << Ansi::reset();
     }
     return ss.str();

@@ -31,9 +31,9 @@ target_link_options(loguru
                     -lpthread
                     -ldl)
 
-find_package(anyoption)
-include_directories("${anyoption_SOURCE_DIR}")
-add_library(anyoption STATIC ${anyoption_SOURCE_DIR}/anyoption.cpp)
+# find_package(anyoption)
+# include_directories("${anyoption_SOURCE_DIR}")
+# add_library(anyoption STATIC ${anyoption_SOURCE_DIR}/anyoption.cpp)
 
 find_package(tclap)
 add_library(tclap INTERFACE)
@@ -55,7 +55,7 @@ message(STATUS "Running configure - done")
 
 add_executable(cgitpr ${SOURCE_FILES})
 
-target_link_libraries(cgitpr PRIVATE loguru tclap anyoption)
+target_link_libraries(cgitpr PRIVATE loguru tclap)
 
 set_target_properties(cgitpr PROPERTIES COMPILE_OPTIONS -pedantic -Wall -Wextra)
 
