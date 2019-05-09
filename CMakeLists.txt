@@ -31,13 +31,13 @@ target_link_options(loguru
                     -lpthread
                     -ldl)
 
-# find_package(anyoption)
-# include_directories("${anyoption_SOURCE_DIR}")
+# find_package(anyoption) include_directories("${anyoption_SOURCE_DIR}")
 # add_library(anyoption STATIC ${anyoption_SOURCE_DIR}/anyoption.cpp)
 
-find_package(tclap)
-add_library(tclap INTERFACE)
-target_include_directories(tclap INTERFACE "${tclap_SOURCE_DIR}/include")
+find_package(tclap REQUIRED)
+# target_include_directories(tclap INTERFACE "${tclap_SOURCE_DIR}/include")
+# add_library(tclap INTERFACE) target_include_directories(tclap INTERFACE
+# "${tclap_SOURCE_DIR}/include")
 
 set(SOURCE_FILES
     src/main.cc

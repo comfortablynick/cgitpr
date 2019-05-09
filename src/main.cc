@@ -183,49 +183,49 @@ int parseFmtStr(std::shared_ptr<Options> opts)
 }
 
 /**
- * Output program help text to stderr.
+ * Output program help text to stream.
  */
-static void printShortHelp()
+static void printShortHelp(std::ostream& str)
 {
-    std::cerr << Ansi::setFg(Color::green) << PACKAGE_STRING << Ansi::reset() << '\n'
-              << PACKAGE_DESCRIPTION << '\n'
-              << PACKAGE_URL << '\n'
-              << Ansi::setFg(Color::bryellow) << "\nUSAGE:\n"
-              << Ansi::setFg(Color::green) << "  cgitpr [FLAG]... [OPTION]...\n"
-              << Ansi::setFg(Color::bryellow) << "\nFLAGS:\n"
-              << Ansi::reset()
-              << "  -h, --help             Show short or long help message and exit\n"
-                 "  -V, --version          Print version and exit\n"
-                 "  -q, --quiet            Silence debug console output (overrides -v)\n"
-                 "  -s, --simple           Simple output, similar to default bash git prompt\n"
-                 "  -n, --no-color         Disable color in output\n"
-                 "  -i, --indicators-only  Show symbols only in output (no counts)\n"
-              << Ansi::setFg(Color::bryellow) << "\nOPTIONS:\n"
-              << Ansi::reset()
-              << "  -f, --format FORMAT    Tokenized format string for git status\n"
-                 "  -d, --dir DIRECTORY    Git directory, if different from current\n"
-                 "  -v LEVEL               Log verbosity: OFF, ERROR, WARNING, INFO, 0-9\n";
+    str << Ansi::setFg(Color::green) << PACKAGE_STRING << Ansi::reset() << '\n'
+        << PACKAGE_DESCRIPTION << '\n'
+        << PACKAGE_URL << '\n'
+        << Ansi::setFg(Color::bryellow) << "\nUSAGE:\n"
+        << Ansi::setFg(Color::green) << "  cgitpr [FLAG]... [OPTION]...\n"
+        << Ansi::setFg(Color::bryellow) << "\nFLAGS:\n"
+        << Ansi::reset()
+        << "  -h, --help             Show short or long help message and exit\n"
+           "  -V, --version          Print version and exit\n"
+           "  -q, --quiet            Silence debug console output (overrides -v)\n"
+           "  -s, --simple           Simple output, similar to default bash git prompt\n"
+           "  -n, --no-color         Disable color in output\n"
+           "  -i, --indicators-only  Show symbols only in output (no counts)\n"
+        << Ansi::setFg(Color::bryellow) << "\nOPTIONS:\n"
+        << Ansi::reset()
+        << "  -f, --format FORMAT    Tokenized format string for git status\n"
+           "  -d, --dir DIRECTORY    Git directory, if different from current\n"
+           "  -v LEVEL               Log verbosity: OFF, ERROR, WARNING, INFO, 0-9\n";
 }
 
 /**
- * Print extra help details to stderr if --help is called.
+ * Print extra help details to stream
  */
-static void printHelpEpilog()
+static void printHelpEpilog(std::ostream& str)
 {
-    std::cerr << Ansi::setFg(Color::bryellow) << "\nFormat string may contain:\n"
-              << Ansi::reset()
-              << "  %g  branch glyph ()\n"
-                 "  %n  VC name\n"
-                 "  %b  branch\n"
-                 "  %r  remote\n"
-                 "  %a  commits ahead/behind remote\n"
-                 "  %c  current commit hash\n"
-                 "  %m  unstaged changes (modified/added/removed)\n"
-                 "  %s  staged changes (modified/added/removed)\n"
-                 "  %u  untracked files\n"
-                 "  %d  diff lines, ex: \"+20/-10\"\n"
-                 "  %t  stashed files indicator"
-              << std::endl;
+    str << Ansi::setFg(Color::bryellow) << "\nFormat string may contain:\n"
+        << Ansi::reset()
+        << "  %g  branch glyph ()\n"
+           "  %n  VC name\n"
+           "  %b  branch\n"
+           "  %r  remote\n"
+           "  %a  commits ahead/behind remote\n"
+           "  %c  current commit hash\n"
+           "  %m  unstaged changes (modified/added/removed)\n"
+           "  %s  staged changes (modified/added/removed)\n"
+           "  %u  untracked files\n"
+           "  %d  diff lines, ex: \"+20/-10\"\n"
+           "  %t  stashed files indicator"
+        << std::endl;
 }
 
 
@@ -242,8 +242,8 @@ class CustomHelpOutput : public TCLAP::StdOutput
         //     spacePrint(std::cerr, (*it)->longID(), 75, 3, 3);
         //     spacePrint(std::cerr, (*it)->getDescription(), 75, 7, 0);
         // }
-        printShortHelp();
-        printHelpEpilog();
+        printShortHelp(std::cerr);
+        printHelpEpilog(std::cerr);
     }
 };
 
@@ -252,24 +252,29 @@ class CustomHelpOutput : public TCLAP::StdOutput
 // @param argc Argument count
 // @param argv Command line arguments
 // @param opts Options object
-void parseArgs(int argc, char** argv, std::shared_ptr<Options> opts)
+void parseArgs(std::vector<std::string> argv, std::shared_ptr<Options> opts)
 {
     using namespace TCLAP;
     try {
-        CmdLine cmd(PACKAGE_DESCRIPTION, ' ', PACKAGE_VERSION);
-        CustomHelpOutput cho;
-        cmd.setOutput(&cho);
+        CmdLine cmd(PACKAGE_DESCRIPTION, ' ', PACKAGE_VERSION, true);
+        // CustomHelpOutput cho;
+        // cmd.setOutput(&cho);
+
+        // std::ostringstream help;
+        // printHelpEpilog(help);
 
         // add args
         SwitchArg quiet("q", "quiet", "Silences console debug output.", cmd, false);
         SwitchArg simple("s", "simple", "Emulates bash git prompt.", cmd, false);
-        ValueArg<std::string> verbosity("v", "", "Increases console debug output.", false, "-2",
-                                        "string", cmd);
+        ValueArg<std::string> verbosity("v", "verbosity", "Increases console debug output.", false,
+                                        "-2", "string", cmd);
         ValueArg<std::string> format("f", "format", "Tokenized format string for git status", false,
                                      opts->format, "string", cmd);
+        // ValueArg<std::string> format("f", "format", help.str(), false, opts->format, "string",
+        // cmd);
 
         // parse args
-        cmd.parse(argc, argv);
+        cmd.parse(argv);
         opts->verbosity = verbosity.getValue();
         opts->simple_mode = simple.getValue();
         opts->debug_quiet = quiet.getValue();
@@ -366,18 +371,12 @@ int main(int argc, char* argv[])
     //     arguments.push_back("INFO");
     // }
 
-    std::vector<char*> args;
-    for (auto& str : arguments) {
-        args.push_back(&str.front());
-    }
-    int arg_ct = args.size();
-    parseArgs(arg_ct, args.data(), opts);
-
-    auto tsize = getTermSize();
+    parseArgs(arguments, opts);
 
     // init loguru
     loguru::g_flush_interval_ms = 100;
-    if (tsize->cols < 200) {
+    if (auto tsize = getTermSize(); tsize->cols < 200) {
+        LOG_F(1, "Log output adjusted for term size: %dx%d", tsize->cols, tsize->lines);
         loguru::g_preamble_thread = false;
         loguru::g_preamble_date = false;
         loguru::g_preamble_time = false;
@@ -386,9 +385,17 @@ int main(int argc, char* argv[])
         }
     }
     if (opts->verbosity == "-2" || opts->debug_quiet) loguru::g_stderr_verbosity = -9;
-    loguru::init(arg_ct, args.data(), "-v");
 
-    LOG_F(1, "Term size: %dx%d", tsize->cols, tsize->lines);
+    // convert vector back to char**
+    // TODO: fix this conversion
+    std::vector<char*> args;
+    for (auto& str : arguments) {
+        args.push_back(&str.front());
+    }
+    int arg_ct = args.size();
+
+    loguru::init(argc, argv, "-v");
+
 
     // TODO: check if in git repo
     CHECK_F(opts->format != "");
