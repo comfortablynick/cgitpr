@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string>
 #include <string_view>
+#include <unistd.h>
 #include <vector>
 
 #ifndef LOG_IS_ON
@@ -290,74 +291,75 @@ void parseArgs(std::vector<std::string> argv, std::shared_ptr<Options> opts)
 // @param argc Argument count
 // @param argv Command line arguments
 // @param opts Options object
-// void processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
-// {
-//     const char* const short_opts = "d:f:v:qhVistn";
-//     const option long_opts[] = {{"dir", required_argument, nullptr, 'd'},
-//                                 {"verbose", required_argument, nullptr, 'v'},
-//                                 {"format", required_argument, nullptr, 'f'},
-//                                 {"help", no_argument, nullptr, 1},
-//                                 {"version", no_argument, nullptr, 'V'},
-//                                 {"quiet", no_argument, nullptr, 'q'},
-//                                 {"indicators-only", no_argument, nullptr, 'i'},
-//                                 {"no-color", no_argument, nullptr, 'n'},
-//                                 {"simple", no_argument, nullptr, 's'},
-//                                 {nullptr, no_argument, nullptr, 0}};
-//
-//     for (;;) {
-//         const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
-//         if (opt == -1) break;
-//         switch (opt) {
-//         // Short and short/long opts
-//         case 'h':
-//             printShortHelp();
-//             exit(1);
-//             break;
-//         case 'd':
-//             opts->debug_print = true;
-//             break;
-//         case 'v':
-//             break;
-//         case 'V':
-//             std::cerr << Ansi::setBg(Color::green) << argv[0] << Ansi::reset() << " "
-//                       << PACKAGE_VERSION << '\n';
-//             exit(1);
-//         case 'i':
-//             opts->indicators_only = true;
-//             break;
-//         case 'n':
-//             opts->no_color = true;
-//             setenv("TERM", "dumb", 1);
-//             break;
-//         case 's':
-//             opts->simple_mode = true;
-//             break;
-//         case 'f':
-//             opts->format = std::string(optarg);
-//             break;
-//         case 'q':
-//             opts->debug_quiet = true;
-//             opts->debug_print = false;
-//             loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
-//             break;
-//         // Long-only opts (by number instead of char flag)
-//         case 1:
-//             printShortHelp();
-//             printHelpEpilog();
-//             exit(1);
-//             break;
-//         case 2:
-//             opts->dir = std::string(optarg);
-//             break;
-//         case '?':
-//         case ':':
-//             exit(1);
-//         default:
-//             printShortHelp();
-//             exit(1);
-//         }
-//     }
-// }
+void processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
+{
+    const char* const short_opts = "d:f:v:qhVistn";
+    // const option long_opts[] = {{"dir", required_argument, nullptr, 'd'},
+    //                             {"verbose", required_argument, nullptr, 'v'},
+    //                             {"format", required_argument, nullptr, 'f'},
+    //                             {"help", no_argument, nullptr, 1},
+    //                             {"version", no_argument, nullptr, 'V'},
+    //                             {"quiet", no_argument, nullptr, 'q'},
+    //                             {"indicators-only", no_argument, nullptr, 'i'},
+    //                             {"no-color", no_argument, nullptr, 'n'},
+    //                             {"simple", no_argument, nullptr, 's'},
+    //                             {nullptr, no_argument, nullptr, 0}};
+
+    for (;;) {
+        // const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
+        const auto opt = getopt(argc, argv, short_opts);
+        if (opt == -1) break;
+        switch (opt) {
+        // Short and short/long opts
+        case 'h':
+            printShortHelp(std::cerr);
+            exit(1);
+            break;
+        case 'd':
+            opts->debug_print = true;
+            break;
+        case 'v':
+            break;
+        case 'V':
+            std::cerr << Ansi::setBg(Color::green) << argv[0] << Ansi::reset() << " "
+                      << PACKAGE_VERSION << '\n';
+            exit(1);
+        case 'i':
+            opts->indicators_only = true;
+            break;
+        case 'n':
+            opts->no_color = true;
+            setenv("TERM", "dumb", 1);
+            break;
+        case 's':
+            opts->simple_mode = true;
+            break;
+        case 'f':
+            opts->format = std::string(optarg);
+            break;
+        case 'q':
+            opts->debug_quiet = true;
+            opts->debug_print = false;
+            loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
+            break;
+        // Long-only opts (by number instead of char flag)
+        case 1:
+            printShortHelp(std::cerr);
+            printHelpEpilog(std::cerr);
+            exit(1);
+            break;
+        case 2:
+            opts->dir = std::string(optarg);
+            break;
+        case '?':
+        case ':':
+            exit(1);
+        default:
+            printShortHelp(std::cerr);
+            exit(1);
+        }
+    }
+}
 
 // CLI entry point; direct to other funcs based on args.
 int main(int argc, char* argv[])
@@ -371,7 +373,8 @@ int main(int argc, char* argv[])
     //     arguments.push_back("INFO");
     // }
 
-    parseArgs(arguments, opts);
+    // parseArgs(arguments, opts);
+    processArgs(argc, argv, opts);
 
     // init loguru
     loguru::g_flush_interval_ms = 100;
