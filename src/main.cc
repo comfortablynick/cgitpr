@@ -1,5 +1,3 @@
-#define PLOG_CAPTURE_FILE
-#define PLOG_OMIT_LOG_DEFINES
 // #define FMT_HEADER_ONLY
 // #include <fmt/format.h>
 #include "../config.h"
@@ -9,8 +7,6 @@
 #include <iostream>
 #include <loguru.hpp>
 #include <memory>
-#include <plog/Appenders/ColorConsoleAppender.h>
-#include <plog/Log.h>
 #include <stdio.h>
 #include <string>
 #include <string_view>
@@ -25,8 +21,6 @@
 // ships with git.
 const std::string simplePrompt()
 {
-    PLOGI << "Entering simplePrompt()";
-    PLOGV << "Entering simplePrompt()";
     std::ostringstream ss;
     std::string_view branch;
     std::vector<std::string> status_cmd(5);
@@ -339,9 +333,6 @@ int main(int argc, char* argv[])
     }
     if (opts->verbosity == "-2" || opts->debug_quiet) loguru::g_stderr_verbosity = -9;
     loguru::init(arg_ct, args.data(), "-v");
-    static plog::ColorConsoleAppender<plog::TxtFormatter> consoleAppender;
-    plog::init(plog::verbose, &consoleAppender);
-    PLOGD << "Test log!";
 
     // TODO: check if in git repo
     CHECK_F(opts->format != "");
