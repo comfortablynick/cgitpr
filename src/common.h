@@ -10,15 +10,6 @@
 #include <utility>
 #include <vector>
 
-template <typename... Args>
-std::string fmt(const std::string& format, Args... args)
-{
-    size_t size = 1 + std::snprintf(nullptr, 0, format.c_str(), args...);
-    std::unique_ptr<char[]> buf(new char[size]);
-    std::snprintf(buf.get(), size, format.c_str(), args...);
-    return std::string(buf.get(), buf.get() + size);
-}
-
 // Output a text representation of vector to stream.
 // For pretty output, use prettify() to get string first.
 // @param out Stream to print to

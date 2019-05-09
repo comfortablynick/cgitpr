@@ -23,6 +23,7 @@ include(build_safeguards)
 
 # find dependencies
 find_package(loguru)
+find_package(plog)
 
 set(SOURCE_FILES
     src/main.cc
@@ -40,7 +41,7 @@ message(STATUS "Running configure - done")
 
 add_executable(cgitpr ${SOURCE_FILES})
 
-target_link_libraries(cgitpr PRIVATE loguru)
+target_link_libraries(cgitpr PRIVATE loguru plog)
 
 set_target_properties(cgitpr PROPERTIES COMPILE_OPTIONS -pedantic -Wall -Wextra)
 
