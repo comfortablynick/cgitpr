@@ -23,18 +23,6 @@ include(build_safeguards)
 
 # find dependencies
 find_package(loguru)
-include_directories("${loguru_SOURCE_DIR}")
-add_library(loguru STATIC ${loguru_SOURCE_DIR}/loguru.cpp)
-target_link_options(loguru
-                    PUBLIC
-                    -pthread
-                    -lpthread
-                    -ldl)
-
-# find_package(anyoption) include_directories("${anyoption_SOURCE_DIR}")
-# add_library(anyoption STATIC ${anyoption_SOURCE_DIR}/anyoption.cpp)
-
-find_package(tclap REQUIRED)
 
 set(SOURCE_FILES
     src/main.cc
@@ -52,7 +40,7 @@ message(STATUS "Running configure - done")
 
 add_executable(cgitpr ${SOURCE_FILES})
 
-target_link_libraries(cgitpr PRIVATE loguru tclap)
+target_link_libraries(cgitpr PRIVATE loguru)
 
 set_target_properties(cgitpr PROPERTIES COMPILE_OPTIONS -pedantic -Wall -Wextra)
 

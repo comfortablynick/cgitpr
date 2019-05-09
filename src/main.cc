@@ -2,7 +2,6 @@
 #include "common.h"
 #include "loguru.hpp"
 #include "repo.h"
-#include "tclap/CmdLine.h"
 #include <cstdlib>
 #include <ext/alloc_traits.h>
 #include <iostream>
@@ -186,8 +185,13 @@ int parseFmtStr(std::shared_ptr<Options> opts)
 /**
  * Output program help text to stream.
  */
-static void printShortHelp(std::ostream& str)
+static void printShortHelp(std::ostream& str, bool color = true)
 {
+    char* orig_term;
+    if (!color) {
+        orig_term = getenv("TERM");
+        setenv("TERM", "dumb", 1);
+    }
     str << Ansi::setFg(Color::green) << PACKAGE_STRING << Ansi::reset() << '\n'
         << PACKAGE_DESCRIPTION << '\n'
         << PACKAGE_URL << '\n'
@@ -206,6 +210,7 @@ static void printShortHelp(std::ostream& str)
         << "  -f, --format FORMAT    Tokenized format string for git status\n"
            "  -d, --dir DIRECTORY    Git directory, if different from current\n"
            "  -v LEVEL               Log verbosity: OFF, ERROR, WARNING, INFO, 0-9\n";
+    if (!color) setenv("TERM", orig_term, 1);
 }
 
 /**
@@ -230,100 +235,35 @@ static void printHelpEpilog(std::ostream& str)
 }
 
 
-class CustomHelpOutput : public TCLAP::StdOutput
-{
-  public:
-    // TODO: break this into components for easy printing
-    virtual void usage(TCLAP::CmdLineInterface& c)
-    {
-        // std::cerr << "USAGE: " << PACKAGE_NAME << " [FLAGS] [OPTIONS]\n"
-        //           << PACKAGE_DESCRIPTION << "\n\n";
-        // std::list<TCLAP::Arg*> args = c.getArgList();
-        // for (TCLAP::ArgListIterator it = args.begin(); it != args.end(); it++) {
-        //     spacePrint(std::cerr, (*it)->longID(), 75, 3, 3);
-        //     spacePrint(std::cerr, (*it)->getDescription(), 75, 7, 0);
-        // }
-        printShortHelp(std::cerr);
-        printHelpEpilog(std::cerr);
-    }
-};
-
-// Parse argv with TCLAP and update Options.
+// Parse argv with getopt and update Options.
 //
 // @param argc Argument count
 // @param argv Command line arguments
 // @param opts Options object
-void parseArgs(std::vector<std::string> argv, std::shared_ptr<Options> opts)
+int parseArgs(const int& argc, char** argv, std::shared_ptr<Options> opts)
 {
-    using namespace TCLAP;
-    try {
-        CmdLine cmd(PACKAGE_DESCRIPTION, ' ', PACKAGE_VERSION, true);
-        // CustomHelpOutput cho;
-        // cmd.setOutput(&cho);
-
-        // std::ostringstream help;
-        // printHelpEpilog(help);
-
-        // add args
-        SwitchArg quiet("q", "quiet", "Silences console debug output.", cmd, false);
-        SwitchArg simple("s", "simple", "Emulates bash git prompt.", cmd, false);
-        ValueArg<std::string> verbosity("v", "verbosity", "Increases console debug output.", false,
-                                        "-2", "string", cmd);
-        ValueArg<std::string> format("f", "format", "Tokenized format string for git status", false,
-                                     opts->format, "string", cmd);
-        // ValueArg<std::string> format("f", "format", help.str(), false, opts->format, "string",
-        // cmd);
-
-        // parse args
-        cmd.parse(argv);
-        opts->verbosity = verbosity.getValue();
-        opts->simple_mode = simple.getValue();
-        opts->debug_quiet = quiet.getValue();
-        opts->format = format.getValue();
-
-    } catch (ArgException& e) {
-        LOG_F(ERROR, "%s for arg %s", e.error(), e.argId());
-    }
-}
-
-// Parse argv with getopt_long and update Options.
-//
-// @param argc Argument count
-// @param argv Command line arguments
-// @param opts Options object
-void processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
-{
-    const char* const short_opts = "d:f:v:qhVistn";
-    // const option long_opts[] = {{"dir", required_argument, nullptr, 'd'},
-    //                             {"verbose", required_argument, nullptr, 'v'},
-    //                             {"format", required_argument, nullptr, 'f'},
-    //                             {"help", no_argument, nullptr, 1},
-    //                             {"version", no_argument, nullptr, 'V'},
-    //                             {"quiet", no_argument, nullptr, 'q'},
-    //                             {"indicators-only", no_argument, nullptr, 'i'},
-    //                             {"no-color", no_argument, nullptr, 'n'},
-    //                             {"simple", no_argument, nullptr, 's'},
-    //                             {nullptr, no_argument, nullptr, 0}};
-
-    for (;;) {
-        // const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
-        const auto opt = getopt(argc, argv, short_opts);
-        if (opt == -1) break;
+    int opt;
+    while ((opt = getopt(argc, argv, "d:f:v:qhHVistn")) != -1) {
         switch (opt) {
-        // Short and short/long opts
         case 'h':
-            printShortHelp(std::cerr);
-            exit(1);
+            printShortHelp(std::cerr, false);
+            return EXIT_FAILURE;
+            break;
+        case 'H':
+            printShortHelp(std::cerr, true);
+            printHelpEpilog(std::cerr);
+            return EXIT_FAILURE;
             break;
         case 'd':
-            opts->debug_print = true;
+            opts->dir = std::string(optarg);
             break;
         case 'v':
+            opts->verbosity = std::string(optarg);
             break;
         case 'V':
-            std::cerr << Ansi::setBg(Color::green) << argv[0] << Ansi::reset() << " "
-                      << PACKAGE_VERSION << '\n';
-            exit(1);
+            std::cerr << PACKAGE_STRING << std::endl;
+            return EXIT_FAILURE;
+            break;
         case 'i':
             opts->indicators_only = true;
             break;
@@ -340,41 +280,38 @@ void processArgs(int argc, char** argv, std::shared_ptr<Options> opts)
         case 'q':
             opts->debug_quiet = true;
             opts->debug_print = false;
+            opts->verbosity = "OFF";
             loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
-            break;
-        // Long-only opts (by number instead of char flag)
-        case 1:
-            printShortHelp(std::cerr);
-            printHelpEpilog(std::cerr);
-            exit(1);
-            break;
-        case 2:
-            opts->dir = std::string(optarg);
             break;
         case '?':
         case ':':
-            exit(1);
+            return EXIT_FAILURE;
         default:
             printShortHelp(std::cerr);
-            exit(1);
+            return EXIT_FAILURE;
         }
     }
+    return EXIT_SUCCESS;
 }
 
 // CLI entry point; direct to other funcs based on args.
 int main(int argc, char* argv[])
 {
     auto opts = std::make_shared<Options>();
-
-    // Manipulate arguments if needed
     std::vector<std::string> arguments(argv, argv + argc);
-    // if (argc == 1) {
-    //     arguments.push_back("-v");
-    //     arguments.push_back("INFO");
-    // }
+    if (argc == 1) { // Manipulate arguments if needed
+        arguments.push_back("-v");
+        arguments.push_back("INFO");
+    }
 
-    // parseArgs(arguments, opts);
-    processArgs(argc, argv, opts);
+    std::vector<char*> args; // convert vector back to char**
+    for (auto& str : arguments) {
+        args.push_back(&str.front());
+    }
+    int arg_ct = args.size();
+    if (parseArgs(args.size(), args.data(), opts) == EXIT_FAILURE) {
+        return EXIT_FAILURE;
+    }
 
     // init loguru
     loguru::g_flush_interval_ms = 100;
@@ -388,17 +325,7 @@ int main(int argc, char* argv[])
         }
     }
     if (opts->verbosity == "-2" || opts->debug_quiet) loguru::g_stderr_verbosity = -9;
-
-    // convert vector back to char**
-    // TODO: fix this conversion
-    std::vector<char*> args;
-    for (auto& str : arguments) {
-        args.push_back(&str.front());
-    }
-    int arg_ct = args.size();
-
-    loguru::init(argc, argv, "-v");
-
+    loguru::init(arg_ct, args.data(), "-v");
 
     // TODO: check if in git repo
     CHECK_F(opts->format != "");
