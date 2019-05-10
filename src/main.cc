@@ -16,6 +16,7 @@
 #ifndef LOG_IS_ON
 #define LOG_IS_ON(verbosity) ((loguru::Verbosity_##verbosity) <= loguru::current_verbosity_cutoff())
 #endif
+#define DEBUG_MODE 0
 
 // Simple prompt emulating default bash prompt that
 // ships with git.
@@ -193,52 +194,42 @@ static void printShortHelp(std::ostream& str, bool color = true)
         orig_term = getenv("TERM");
         setenv("TERM", "dumb", 1);
     }
-    str << Ansi::setFg(Color::green) << PACKAGE_STRING << Ansi::reset() << '\n'
-        << PACKAGE_DESCRIPTION << '\n'
-        << PACKAGE_URL << '\n'
-        << Ansi::setFg(Color::bryellow) << "\nUSAGE:\n"
-        << Ansi::setFg(Color::green) << "  cgitpr [FLAG]... [OPTION]...\n"
-        << Ansi::setFg(Color::bryellow) << "\nFLAGS:\n"
+    str << Ansi::setFg(Color::bryellow) << "usage: " << Ansi::setFg(Color::green)
+        << "cgitpr [-hVqsni] [-d directory] [-v verbosity] [-f format]\n"
+        << Ansi::setFg(Color::bryellow) << "FLAGS:\n"
         << Ansi::reset()
-        << "  -h, --help             Show short or long help message and exit\n"
-           "  -V, --version          Print version and exit\n"
-           "  -q, --quiet            Silence debug console output (overrides -v)\n"
-           "  -s, --simple           Simple output, similar to default bash git prompt\n"
-           "  -n, --no-color         Disable color in output\n"
-           "  -i, --indicators-only  Show symbols only in output (no counts)\n"
-        << Ansi::setFg(Color::bryellow) << "\nOPTIONS:\n"
+        << "  -h  show short or long help message and exit\n"
+           "  -V  print version and exit\n"
+           "  -q  silence debug console output (overrides -v)\n"
+           "  -s  simple output, similar to default bash git prompt\n"
+           "  -n  disable color in output\n"
+           "  -i  show symbols only in output (no counts)\n"
+        << Ansi::setFg(Color::bryellow) << "ARGUMENTS:\n"
         << Ansi::reset()
-        << "  -f, --format FORMAT    Tokenized format string for git status\n"
-           "  -d, --dir DIRECTORY    Git directory, if different from current\n"
-           "  -v LEVEL               Log verbosity: OFF, ERROR, WARNING, INFO, 0-9\n";
+        << "  -d  git directory, if different from current\n"
+           "  -v  log verbosity: OFF, ERROR, WARNING, INFO, 0-9\n"
+           "  -f  tokenized format string for git status\n";
     if (!color) setenv("TERM", orig_term, 1);
 }
 
 /**
  * Print extra help details to stream
  */
-static void printHelpEpilog(std::ostream& str, bool color = true)
+static void printHelpEpilog(std::ostream& str)
 {
-    char* orig_term;
-    if (!color) {
-        orig_term = getenv("TERM");
-        setenv("TERM", "dumb", 1);
-    }
-    str << Ansi::setFg(Color::bryellow) << "\nFormat string may contain:\n"
-        << Ansi::reset()
-        << "  %g  branch glyph ()\n"
-           "  %n  VC name\n"
-           "  %b  branch\n"
-           "  %r  remote\n"
-           "  %a  commits ahead/behind remote\n"
-           "  %c  current commit hash\n"
-           "  %m  unstaged changes (modified/added/removed)\n"
-           "  %s  staged changes (modified/added/removed)\n"
-           "  %u  untracked files\n"
-           "  %d  diff lines, ex: \"+20/-10\"\n"
-           "  %t  stashed files indicator"
+    str << "      %g  branch glyph ()\n"
+           "      %n  VC name\n"
+           "      %b  branch\n"
+           "      %r  remote\n"
+           "      %a  commits ahead/behind remote\n"
+           "      %c  current commit hash\n"
+           "      %m  unstaged changes (modified/added/removed)\n"
+           "      %s  staged changes (modified/added/removed)\n"
+           "      %u  untracked files\n"
+           "      %d  diff lines, ex: \"+20/-10\"\n"
+           "      %t  stashed files indicator\n"
+           "      %%  show '%'"
         << std::endl;
-    if (!color) setenv("TERM", orig_term, 1);
 }
 
 
@@ -254,6 +245,7 @@ int parseArgs(const int& argc, char** argv, std::shared_ptr<Options> opts)
         switch (opt) {
         case 'h':
             printShortHelp(std::cerr, false);
+            printHelpEpilog(std::cerr);
             return EXIT_FAILURE;
             break;
         case 'H':
@@ -287,7 +279,7 @@ int parseArgs(const int& argc, char** argv, std::shared_ptr<Options> opts)
         case 'q':
             opts->debug_quiet = true;
             opts->debug_print = false;
-            opts->verbosity = "OFF";
+            opts->verbosity = "-9";
             loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
             break;
         case '?':
@@ -306,10 +298,12 @@ int main(int argc, char* argv[])
 {
     auto opts = std::make_shared<Options>();
     std::vector<std::string> arguments(argv, argv + argc);
+#if DEBUG_MODE == 1
     if (argc == 1) { // Manipulate arguments if needed
         arguments.push_back("-v");
         arguments.push_back("INFO");
     }
+#endif
 
     std::vector<char*> args; // convert vector back to char**
     for (auto& str : arguments) {
