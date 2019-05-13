@@ -1,7 +1,7 @@
 #include "common.h"
 #include "repo.h"
 
-#include <ext/alloc_traits.h>
+// #include <ext/alloc_traits.h>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -118,7 +118,7 @@ void Repo::parseGitDiff(const std::string& str)
 // @param indicators_only Show symbols only, not numbers
 const std::string Repo::formatAheadBehind(bool indicators_only) const
 {
-    std::stringstream ss;
+    std::ostringstream ss;
     if (ahead > 0) {
         ss << AHEAD_GLYPH;
         if (!indicators_only) ss << ahead;
@@ -142,9 +142,14 @@ const std::string Repo::formatBranch() const
 // @param string_len Length of commit hash representation
 const std::string Repo::formatCommit(size_t str_len) const
 {
-    std::stringstream ss;
-    ss << Ansi::setBg(Color::green) << Ansi::setFg(Color::black) << commit.substr(0, str_len)
-       << Ansi::reset();
+    std::ostringstream ss;
+    ss << Ansi::setBg(Color::green) << Ansi::setFg(Color::black);
+    if (commit != "(initial)") {
+        ss << commit.substr(0, str_len);
+    } else {
+        ss << commit;
+    }
+    ss << Ansi::reset();
     return ss.str();
 }
 
@@ -152,7 +157,7 @@ const std::string Repo::formatCommit(size_t str_len) const
 // untracked
 const std::string Repo::formatDiff() const
 {
-    std::stringstream ss;
+    std::ostringstream ss;
     if (insertions > 0) {
         ss << '+' << insertions;
         if (deletions > 0) {
@@ -168,7 +173,7 @@ const std::string Repo::formatDiff() const
 // Format stash count/icon
 const std::string Repo::formatStashed(bool indicators_only) const
 {
-    std::stringstream ss;
+    std::ostringstream ss;
     if (stashed > 0) {
         ss << STASH_GLYPH;
         if (!indicators_only) ss << stashed;
@@ -179,7 +184,7 @@ const std::string Repo::formatStashed(bool indicators_only) const
 // Format untracked files count/icon
 const std::string Repo::formatUntracked(bool indicators_only) const
 {
-    std::stringstream ss;
+    std::ostringstream ss;
     if (untracked > 0) {
         ss << Ansi::setFg(Color::gray) << UNTRACKED_GLYPH;
         if (!indicators_only) ss << untracked;

@@ -1,9 +1,9 @@
 // #define FMT_HEADER_ONLY
-// #include <fmt/format.h>
 #include "../config.h"
 #include "common.h"
 #include "repo.h"
 #include <cstdlib>
+// #include <fmt/format.h>
 #include <iostream>
 #include <loguru.hpp>
 #include <memory>
@@ -370,8 +370,8 @@ int main(int argc, char* argv[])
         LOG_F(INFO, "Repo is not dirty; git diff not called");
     }
 
-    LOG_S(INFO) << ri;
-    LOG_S(INFO) << opts;
+    LOG_S(1) << ri;
+    LOG_S(1) << opts;
 
     std::cout << printOutput(opts, ri) << std::endl;
 }

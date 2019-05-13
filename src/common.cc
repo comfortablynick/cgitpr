@@ -56,30 +56,30 @@ std::unique_ptr<result_t> run(const char* cmd)
     return output;
 }
 
-// One style of execution (not used currently)
-int exec(const char* file, const char* const argv[])
-{
-    std::size_t argc = 0;
-    std::size_t len = 0;
-
-    /* measure the inputs */
-    for (auto* p = argv; *p; ++p) {
-        LOG_S(INFO) << "Arg " << argc << ": " << argv[argc];
-        ++argc;
-        len += strlen(*p) + 1;
-    }
-    /* allocate copies */
-    auto const arg_string = std::make_unique<char[]>(len);
-    auto const args = std::make_unique<char*[]>(argc + 1);
-    /* copy the inputs */
-    len = 0; // re-use for position in arg_string
-    for (auto i = 0u; i < argc; ++i) {
-        len += strlen(args[i] = strcpy(&arg_string[len], argv[i])) +
-               1; /* advance to one AFTER the nul */
-    }
-    args[argc] = nullptr;
-    return execvp(file, args.get());
-}
+// // One style of execution (not used currently)
+// int exec(const char* file, const char* const argv[])
+// {
+//     std::size_t argc = 0;
+//     std::size_t len = 0;
+//
+//     [> measure the inputs <]
+//     for (auto* p = argv; *p; ++p) {
+//         LOG_S(INFO) << "Arg " << argc << ": " << argv[argc];
+//         ++argc;
+//         len += strlen(*p) + 1;
+//     }
+//     [> allocate copies <]
+//     auto const arg_string = std::make_unique<char[]>(len);
+//     auto const args = std::make_unique<char*[]>(argc + 1);
+//     [> copy the inputs <]
+//     len = 0; // re-use for position in arg_string
+//     for (auto i = 0u; i < argc; ++i) {
+//         len += strlen(args[i] = strcpy(&arg_string[len], argv[i])) +
+//                1; [> advance to one AFTER the nul <]
+//     }
+//     args[argc] = nullptr;
+//     return execvp(file, args.get());
+// }
 
 // Split string by delimiter
 //
@@ -122,7 +122,7 @@ namespace Ansi {
         if (env_term == nullptr || strcmp(env_term, "dumb") == 0) {
             return "";
         }
-        std::stringstream escape_fg;
+        std::ostringstream escape_fg;
         escape_fg << "\033[38;5;" << static_cast<unsigned int>(color) << "m";
         return escape_fg.str();
     }
@@ -136,7 +136,7 @@ namespace Ansi {
         if (env_term == nullptr || strcmp(env_term, "dumb") == 0) {
             return "";
         }
-        std::stringstream escape_fg;
+        std::ostringstream escape_fg;
         escape_fg << "\033[48;5;" << static_cast<unsigned int>(color) << "m";
         return escape_fg.str();
     }
