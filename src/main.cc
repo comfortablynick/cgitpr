@@ -1,9 +1,8 @@
-// #define FMT_HEADER_ONLY
 #include "../config.h"
 #include "common.h"
 #include "repo.h"
 #include <cstdlib>
-// #include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <iostream>
 #include <loguru.hpp>
 #include <memory>
@@ -22,7 +21,6 @@
 // ships with git.
 const std::string simplePrompt()
 {
-    std::ostringstream ss;
     std::string_view branch;
     std::vector<std::string> status_cmd(5);
     status_cmd = {"git", "status", "--porcelain", "--branch", "--untracked-files=no"};
@@ -32,13 +30,13 @@ const std::string simplePrompt()
         exit(EXIT_FAILURE);
     }
     auto lines = split(git_status->stdout, "\n");
-    LOG_S(1) << "Git status lines: " << lines;
+    LOG_F(1, "Git status lines: ", lines);
     auto words = split(lines[0], " ");
 
     bool ahead = false;
     bool behind = false;
     for (auto i = 0; i < words.size(); ++i) {
-        LOG_S(2) << "Word: '" << words[i] << "'";
+        LOG_F(2, "Word: '{}'", words[i]);
         if (words[i] == "##") {
             ++i;
             branch = split(words[i], "...")[0];
@@ -50,17 +48,10 @@ const std::string simplePrompt()
             ahead = true;
         }
     }
-    LOG_S(INFO) << "HEAD: " << read_first_line(".git/HEAD");
-    LOG_S(INFO) << "Ahead: " << ahead << "; Behind: " << behind;
+    LOG_F(INFO, "HEAD: {}", read_first_line(".git/HEAD"));
+    LOG_F(INFO, "Ahead: {}; Behind: {}", ahead, behind);
 
-    // Getting inconsistent results with the below command
-    // std::vector<std::string> dirty_cmd(5);
-    // dirty_cmd = {"git", "diff", "--no-ext-diff", "--quiet", " --exit-code"};
-    // auto dirty_result = ex(dirty_cmd);
-    //
-    // LOG_S(INFO) << "`git diff --exit-code` command result: " << dirty_result->status;
-    // bool dirty = dirty_result->status == 0 ? false : true;
-
+    std::ostringstream ss;
     ss << Ansi::setFg(Color::cyan) << "(" << branch << ")";
     if (lines.size() > 1) ss << Ansi::setFg(Color::red) << "*";
     ss << Ansi::reset();
@@ -370,8 +361,7 @@ int main(int argc, char* argv[])
         LOG_F(INFO, "Repo is not dirty; git diff not called");
     }
 
-    LOG_S(1) << ri;
-    LOG_S(1) << opts;
+    LOG_F(1, "{}", ri);
 
     std::cout << printOutput(opts, ri) << std::endl;
 }

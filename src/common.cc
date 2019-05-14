@@ -3,6 +3,7 @@
 #include "loguru.hpp"
 #include <algorithm>
 #include <errno.h>
+#include <fmt/ostream.h>
 #include <iostream>
 #include <iterator>
 #include <stdlib.h>
@@ -39,47 +40,24 @@ std::unique_ptr<result_t> run(const char* cmd)
     const int max_buffer = 256;
     char buffer[max_buffer];
     int rtval = -1;
-    LOG_S(INFO) << "Cmd: `" << cmd << "'";
+    LOG_F(INFO, "Cmd: `{}'", cmd);
 
     stream = popen(cmd, "r");
     if (stream) {
         while (fgets(buffer, max_buffer, stream) != nullptr) {
             data.append(buffer);
         }
-        if (ferror(stream)) LOG_S(ERROR) << "error getting stream for command: '" << cmd << "'";
+        if (ferror(stream)) {
+            LOG_F(ERROR, "error getting stream for command: '{}", cmd);
+        }
         rtval = pclose(stream);
-        LOG_S(INFO) << "Command return val: " << rtval;
+        LOG_F(INFO, "Command return val: {}", rtval);
     }
     auto output = std::make_unique<result_t>();
     output->status = rtval;
     output->stdout = data;
     return output;
 }
-
-// // One style of execution (not used currently)
-// int exec(const char* file, const char* const argv[])
-// {
-//     std::size_t argc = 0;
-//     std::size_t len = 0;
-//
-//     [> measure the inputs <]
-//     for (auto* p = argv; *p; ++p) {
-//         LOG_S(INFO) << "Arg " << argc << ": " << argv[argc];
-//         ++argc;
-//         len += strlen(*p) + 1;
-//     }
-//     [> allocate copies <]
-//     auto const arg_string = std::make_unique<char[]>(len);
-//     auto const args = std::make_unique<char*[]>(argc + 1);
-//     [> copy the inputs <]
-//     len = 0; // re-use for position in arg_string
-//     for (auto i = 0u; i < argc; ++i) {
-//         len += strlen(args[i] = strcpy(&arg_string[len], argv[i])) +
-//                1; [> advance to one AFTER the nul <]
-//     }
-//     args[argc] = nullptr;
-//     return execvp(file, args.get());
-// }
 
 // Split string by delimiter
 //
@@ -161,7 +139,7 @@ const std::string read_first_line(const char* filename)
     file.open(filename);
 
     if (!file) {
-        LOG_S(ERROR) << "Could not open file: " << filename;
+        LOG_F(ERROR, "Could not open file: {}", filename);
     } else {
         std::getline(file, line);
     }
@@ -175,7 +153,7 @@ const std::string read_first_line(const char* filename)
 // @param inc_stderr Capture stderr output
 std::unique_ptr<result_t> ex(const std::vector<std::string>& args, const bool inc_stderr)
 {
-    LOG_S(INFO) << "ex() cmd: " << args;
+    LOG_F(INFO, "ex() cmd: {}", args);
     // stdout
     int stdout_fds[2];
     pipe(stdout_fds);

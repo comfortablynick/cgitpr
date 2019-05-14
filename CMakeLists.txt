@@ -12,16 +12,17 @@ message(STATUS "Compiler:         ${CMAKE_CXX_COMPILER}")
 message(STATUS "Operating System: ${CMAKE_SYSTEM}")
 message(STATUS "Processor:        ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
-set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(BUILD_SHARED_LIBS ON)
+set(BUILD_SHARED_LIBS OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(compiler_check)
 include(build_safeguards)
 
 # find dependencies
+find_package(fmt)
 find_package(loguru)
 
 set(SOURCE_FILES
@@ -40,7 +41,7 @@ message(STATUS "Running configure - done")
 
 add_executable(cgitpr ${SOURCE_FILES})
 
-target_link_libraries(cgitpr PRIVATE loguru)
+target_link_libraries(cgitpr PUBLIC fmt loguru)
 
 set_target_properties(cgitpr PROPERTIES COMPILE_OPTIONS -pedantic -Wall -Wextra)
 

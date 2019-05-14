@@ -4,13 +4,8 @@
 rm -rf build
 mkdir build && cd build || exit 1
 
-# conan install
-# conan remote add --force zimmerk https://api.bintray.com/conan/zimmerk/conan
-# conan install .. --build=missing
-# conan build ..
-
 # build
-cmake .. # -DFETCHCONTENT_QUIET=OFF
+cmake ..
 make install
 
 # link compile_commands.json for source code completion
