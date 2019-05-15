@@ -12,7 +12,6 @@ message(STATUS "Compiler:         ${CMAKE_CXX_COMPILER}")
 message(STATUS "Operating System: ${CMAKE_SYSTEM}")
 message(STATUS "Processor:        ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
-set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_SHARED_LIBS OFF)
@@ -25,12 +24,10 @@ include(build_safeguards)
 find_package(fmt)
 find_package(loguru)
 
-set(SOURCE_FILES
+set(SOURCE_FILES # all cpp files
     src/main.cc
     src/repo.cc
-    src/repo.h
-    src/common.cc
-    src/common.h)
+    src/common.cc)
 
 # configure
 message(STATUS "Running configure")
